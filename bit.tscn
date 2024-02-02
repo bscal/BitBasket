@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3 uid="uid://d08sn102mcaag"]
+
+[ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://Bit1.png" id="1_s8ool"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_jfva4"]
+friction = 0.69
+bounce = 0.6
+
+[node name="Bit" type="RigidBody2D"]
+mass = 0.16
+physics_material_override = SubResource("PhysicsMaterial_jfva4")
+continuous_cd = 2
+linear_damp = 0.2
+angular_damp = 0.2
+
+[node name="CollisionShape2D" type="CollisionPolygon2D" parent="."]
+position = Vector2(-2, 2)
+scale = Vector2(1.89497, 1.77779)
+polygon = PackedVector2Array(-12.6651, 10.6874, -0.527713, -12.9374, 3.16628, -12.9374, 14.776, 10.6874)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, 4.76837e-07)
+scale = Vector2(0.567901, 0.588235)
+texture = ExtResource("1_s8ool")

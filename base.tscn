@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3 uid="uid://c4q1tu7v8d5ha"]
+
+[ext_resource type="Script" path="res://BitManager.cs" id="1_tqyh6"]
+[ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://Bit1.png" id="2_b35ci"]
+[ext_resource type="Texture2D" uid="uid://bogi1skn0ep1v" path="res://bitglass.png" id="2_wget7"]
+[ext_resource type="Texture2D" uid="uid://csmjh0vfn13tx" path="res://Bit2.png" id="3_t2paq"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_0tfi2"]
+absorbent = true
+
+[node name="Base" type="Node2D"]
+position = Vector2(0, -2)
+
+[node name="BitManager" type="Node2D" parent="."]
+script = ExtResource("1_tqyh6")
+Bit1Texture = ExtResource("2_b35ci")
+Bit2Texture = ExtResource("3_t2paq")
+
+[node name="SpawnPosition" type="Node2D" parent="BitManager"]
+position = Vector2(570, 19)
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+position = Vector2(426, 207)
+physics_material_override = SubResource("PhysicsMaterial_0tfi2")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D"]
+position = Vector2(143, 42)
+scale = Vector2(14.7554, 13.9774)
+polygon = PackedVector2Array(-6.50609, 28.6176, -7.04827, 21.7494, -8.60702, 1.35934, -7.09486, 1.35872, -4.33739, 23.8242, 1.01658, 24.1103, 6.03169, 23.6095, 8.78915, 1.26814, 10.1658, 1.26814, 8.81033, 23.6811, 8.81033, 28.5461, 0.813263, 28.6176)
+
+[node name="Sprite2D" type="Sprite2D" parent="StaticBody2D"]
+z_index = -1
+position = Vector2(154, 246)
+scale = Vector2(1.03567, 0.861591)
+texture = ExtResource("2_wget7")
