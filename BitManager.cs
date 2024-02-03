@@ -18,22 +18,23 @@ public struct BitOrder
 	public BitOrder() {}
 }
 
-public struct BitLifetime
+public struct BitState
 {
 	public int Index;
-	public int TicksAlive;
+
+	public BitState(int index) { Index = index; }
 }
 
 public partial class BitManager : Node2D
 {
-	public const int MAX_BITS = 1024;
+	public const int MAX_BITS = 256;
 	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
 
 	public int CurrentIndex = 0;
 	public RigidBody2D[] BitPool = new RigidBody2D[MAX_BITS];
 
-	public short[] BitMap = new short[MAX_BITS];
-	public List<BitLifetime> Lifetimes = new List<BitLifetime>(MAX_BITS);
+	public int[] BitStatesSparse = new int[MAX_BITS];
+	public List<BitState> BitStatesDense = new List<BitState>(MAX_BITS);
 
 	[Export]
 	public Texture Bit1Texture;
@@ -45,6 +46,8 @@ public partial class BitManager : Node2D
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
+		Engine.MaxFps = 60;
+
 		Node2D spawnNode = GetNode<Node2D>(new NodePath("./SpawnPosition"));
 		if (spawnNode == null)
 		{
@@ -68,6 +71,8 @@ public partial class BitManager : Node2D
 
 			BitPool[i].ProcessMode = ProcessModeEnum.Disabled;
 			BitPool[i].GetNode<Sprite2D>(new NodePath("./Sprite2D")).Hide();
+
+			BitStatesSparse[i] = -1;
 		}
 	}
 
@@ -85,28 +90,36 @@ public partial class BitManager : Node2D
 			SpawnNode(BitTypes.Bit100);
 		}
 
-		for (int i = Lifetimes.Count - 1; i >= 0; --i)
-		{
-			BitLifetime lifetime = Lifetimes[i];
-			++lifetime.TicksAlive;
-			Lifetimes[i] = lifetime;
+		Rect2 screenRect = GetViewportRect();
 
-			if (lifetime.TicksAlive > BIT_TIMEOUT
-				|| BitPool[lifetime.Index].Position.Y > 1024)
+		for (int i = BitStatesDense.Count - 1; i >= 0; --i)
+		{
+			BitState state = BitStatesDense[i];
+
+			if (!screenRect.HasPoint(BitPool[state.Index].Position))
 			{
-				BitPool[lifetime.Index].ProcessMode = ProcessModeEnum.Disabled;
-				BitPool[lifetime.Index].GetNode<Sprite2D>(new NodePath("./Sprite2D")).Hide();
-				Lifetimes.RemoveAt(i);
-				BitMap[Lifetimes[i].Index] = (short)i;
+				BitPool[state.Index].ProcessMode = ProcessModeEnum.Disabled;
+				BitPool[state.Index].GetNode<Sprite2D>(new NodePath("./Sprite2D")).Hide();
+
+				BitState lastState = BitStatesDense[BitStatesDense.Count - 1];
+
+				BitStatesDense[i] = lastState;
+				BitStatesDense.RemoveAt(BitStatesDense.Count - 1);
+
+				BitStatesSparse[lastState.Index] = i;
+				BitStatesSparse[state.Index] = -1;
 			}
 		}
 	}
 
 	public void SpawnNode(BitTypes type)
 	{
-		int idx = CurrentIndex;
-
-		CurrentIndex = (CurrentIndex + 1) % MAX_BITS;
+		int idx;
+		do
+		{
+			idx = CurrentIndex;
+			CurrentIndex = (CurrentIndex + 1) % MAX_BITS;
+		} while (BitStatesSparse[idx] != -1);
 
 		BitPool[idx].Position = SpawnPosition;
 		BitPool[idx].ProcessMode = ProcessModeEnum.Always;
@@ -115,7 +128,7 @@ public partial class BitManager : Node2D
 
 		Debug.Assert(type != BitTypes.MaxBitTypes);
 
-		switch(type)
+		switch (type)
 		{
 			case BitTypes.Bit1:
 				{
@@ -125,24 +138,17 @@ public partial class BitManager : Node2D
 				} break;
 			case BitTypes.Bit100:
 				{
-					BitPool[idx].Mass = 10f;
-					BitPool[idx].LinearVelocity = new Vector2(0, 5);
+					BitPool[idx].Mass = 20f;
+					BitPool[idx].LinearVelocity = Vector2.Zero;
 					sprite.Texture = (Texture2D)Bit100Texture;
 				} break;
 		}
 
 		sprite.Show();
 
-		short id = BitMap[idx];
-
-		Lifetimes.RemoveAt(id);
-
-		BitMap[idx] = (short)Lifetimes.Count;
-
-		BitLifetime lifetime = new BitLifetime();
-		lifetime.Index = idx;
-		lifetime.TicksAlive = 0;
-		Lifetimes.Add(lifetime);
+		int insertIdx = BitStatesDense.Count;
+		BitStatesDense.Add(new BitState(idx));
+		BitStatesSparse[idx] = (short)insertIdx;
 	}
 
 	public void TestBits(BitOrder bitOrder)

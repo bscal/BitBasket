@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://c4q1tu7v8d5ha"]
+[gd_scene load_steps=7 format=3 uid="uid://c4q1tu7v8d5ha"]
 
 [ext_resource type="Script" path="res://BitManager.cs" id="1_tqyh6"]
 [ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://Bit1.png" id="2_b35ci"]
 [ext_resource type="Texture2D" uid="uid://bogi1skn0ep1v" path="res://bitglass.png" id="2_wget7"]
 [ext_resource type="Texture2D" uid="uid://csmjh0vfn13tx" path="res://Bit2.png" id="3_t2paq"]
+[ext_resource type="Script" path="res://UIController.cs" id="5_gk6s4"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_0tfi2"]
 absorbent = true
@@ -14,10 +15,10 @@ position = Vector2(0, -2)
 [node name="BitManager" type="Node2D" parent="."]
 script = ExtResource("1_tqyh6")
 Bit1Texture = ExtResource("2_b35ci")
-Bit2Texture = ExtResource("3_t2paq")
+Bit100Texture = ExtResource("3_t2paq")
 
 [node name="SpawnPosition" type="Node2D" parent="BitManager"]
-position = Vector2(570, 19)
+position = Vector2(578, 21)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 position = Vector2(426, 207)
@@ -33,3 +34,40 @@ z_index = -1
 position = Vector2(154, 246)
 scale = Vector2(1.03567, 0.861591)
 texture = ExtResource("2_wget7")
+
+[node name="UI" type="VBoxContainer" parent="."]
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 148.0
+offset_bottom = 35.0
+
+[node name="GridContainer" type="GridContainer" parent="UI"]
+layout_mode = 2
+
+[node name="BtnShowDebug" type="CheckButton" parent="UI/GridContainer"]
+layout_mode = 2
+text = "Show Debug
+"
+
+[node name="DebugUI" type="VBoxContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = 960.0
+offset_right = 1141.0
+offset_bottom = 181.0
+grow_horizontal = 0
+
+[node name="LabelDebugFPS" type="Label" parent="DebugUI"]
+layout_mode = 2
+
+[node name="LabelDebugFrameTime" type="Label" parent="DebugUI"]
+layout_mode = 2
+
+[node name="LabelDebugActiveBits" type="Label" parent="DebugUI"]
+layout_mode = 2
+text = "
+"
+
+[node name="UIController" type="Node" parent="."]
+script = ExtResource("5_gk6s4")
