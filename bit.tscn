@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://d08sn102mcaag"]
 
-[ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://Bit1.png" id="1_s8ool"]
+[ext_resource type="Texture2D" uid="uid://cke4gvfoyqr7g" path="res://Bit1000.png" id="1_ef1j7"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_jfva4"]
 friction = 0.69
@@ -16,9 +16,7 @@ angular_damp = 0.2
 [node name="CollisionShape2D" type="CollisionPolygon2D" parent="."]
 position = Vector2(-2, 2)
 scale = Vector2(1.89497, 1.77779)
-polygon = PackedVector2Array(-12.6651, 10.6874, -0.527713, -12.9374, 3.16628, -12.9374, 14.776, 10.6874)
+polygon = PackedVector2Array(-10.0265, 10.6874, -10.0265, -11.8124, 12.1374, -11.8124, 12.1374, 10.6874)
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(0, 4.76837e-07)
-scale = Vector2(0.567901, 0.588235)
-texture = ExtResource("1_s8ool")
+texture = ExtResource("1_ef1j7")

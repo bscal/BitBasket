@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://csmjh0vfn13tx"
-path="res://.godot/imported/Bit2.png-73719640014e7590037827f204e493ed.ctex"
+uid="uid://cke4gvfoyqr7g"
+path="res://.godot/imported/Bit1000.png-6e998d0e6611e6bf1fe110dfb505fb64.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Bit2.png"
-dest_files=["res://.godot/imported/Bit2.png-73719640014e7590037827f204e493ed.ctex"]
+source_file="res://Bit1000.png"
+dest_files=["res://.godot/imported/Bit1000.png-6e998d0e6611e6bf1fe110dfb505fb64.ctex"]
 
 [params]
 
