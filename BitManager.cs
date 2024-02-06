@@ -1,9 +1,13 @@
+using BitCup;
 using Godot;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Net;
-using static Godot.WebSocketPeer;
+
+public enum State
+{
+	PreStart,
+	OAuth,
+	Running
+}
 
 public enum BitTypes
 {
@@ -37,10 +41,9 @@ public struct BitState
 
 public partial class BitManager : Node2D
 {
-	public const int MAX_BITS = 64;
+	public const int MAX_BITS = 512;
 	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
 	public const float BIT_TIMER = 0.15f;
-	public const int MAX_ORDERS = 32;
 
 	public int CurrentIndex = 0;
 	public RigidBody2D[] BitPool = new RigidBody2D[MAX_BITS];
@@ -49,7 +52,7 @@ public partial class BitManager : Node2D
 	public int BitStatesDenseCount;
 	public BitState[] BitStatesDense = new BitState[MAX_BITS];
 
-	public List<BitOrder> BitOrders = new List<BitOrder>(MAX_ORDERS);
+	public List<BitOrder> BitOrders = new List<BitOrder>(32);
 
 	[Export]
 	public Texture Bit1Texture;
@@ -66,6 +69,12 @@ public partial class BitManager : Node2D
 	public Area2D ForceTriggerArea;
 	public Area2D BoundsArea;
 
+	public TwitchManager TwitchManager;
+
+	public Config Config;
+
+	public State State = State.PreStart;
+
 	private Vector2 SpawnPosition;
 	private float Timer;
 
@@ -73,6 +82,14 @@ public partial class BitManager : Node2D
 	public override void _Ready()
 	{
 		Engine.MaxFps = 60;
+
+		TwitchManager = new TwitchManager(this);
+
+		Config = Config.Load();
+		if (!string.IsNullOrEmpty(Config.Username) && Config.AutoConnect)
+		{
+			TwitchManager.OAuthServerStart();
+		}
 
 		Node2D spawnNode = GetNode<Node2D>(new NodePath("./SpawnPosition"));
 		if (spawnNode == null)
@@ -99,6 +116,7 @@ public partial class BitManager : Node2D
 		for (int i = 0; i < MAX_BITS; ++i)
 		{
 			BitPool[i] = (RigidBody2D)bitScene.Instantiate();
+			BitPool[i].Position = SpawnPosition;
 			AddChild(BitPool[i]);
 
 			BitPool[i].ProcessMode = ProcessModeEnum.Disabled;
@@ -106,66 +124,97 @@ public partial class BitManager : Node2D
 
 			BitStatesSparse[i] = -1;
 		}
+
 	}
+
+	public override void _Notification(int what)
+	{
+		if (what == NotificationWMCloseRequest || what == NotificationCrash)
+		{
+			if (TwitchManager.Client != null && TwitchManager.Client.IsConnected)
+			{
+				TwitchManager.Client.Disconnect();
+			}
+		}
+	}
+
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
-/*		for (int i = BitStatesDenseCount - 1; i >= 0; --i)
+		switch (State)
 		{
-			BitState state = (BitState)BitStatesDense[i];
-			if (!state.HasExploded)
-			{
-				if (ForceTriggerArea.OverlapsBody(BitPool[state.Index]))
+			case (State.PreStart):
 				{
-					BitStatesDense[i].HasExploded = true;
-
-					float magnitude = BitPool[state.Index].LinearVelocity.Y;
-					float mass = BitPool[state.Index].Mass;
-
-					foreach (Node2D areaNode in ForceArea.GetOverlappingBodies())
+				} break;
+			case (State.OAuth):
+				{
+					TwitchManager.OAuthServerUpdate();
+				} break;
+			case (State.Running):
+				{
+					for (int i = BitStatesDenseCount - 1; i >= 0; --i)
 					{
-						if (areaNode is RigidBody2D rb && rb.Mass < mass)
+						BitState state = (BitState)BitStatesDense[i];
+						if (!state.HasExploded)
 						{
-							Vector2 force = Vector2.Up;
-							force.Y *= (magnitude) * (mass * 2.0f);
-							rb.ApplyImpulse(force);
+							if (ForceTriggerArea.OverlapsBody(BitPool[state.Index]))
+							{
+								BitStatesDense[i].HasExploded = true;
+
+								float magnitude = BitPool[state.Index].LinearVelocity.Y;
+								float mass = BitPool[state.Index].Mass;
+
+								foreach (Node2D areaNode in ForceArea.GetOverlappingBodies())
+								{
+									if (areaNode is RigidBody2D rb && rb.Mass < mass)
+									{
+										Vector2 force = Vector2.Up;
+										force.Y *= (magnitude) * (mass * 2.0f);
+										rb.ApplyImpulse(force);
+									}
+
+								}
+							}
 						}
-
 					}
-				}
-			}
-		}*/
 
-		Timer += (float)delta;
-		if (Timer > BIT_TIMER)
-		{
-			Timer = 0;
-			if (BitOrders.Count > 0 && BitOrderProcessNext(BitOrders[0]))
-			{
-				BitOrders.Remove(BitOrders[0]);
-			}
+					Timer += (float)delta;
+					if (Timer > BIT_TIMER)
+					{
+						Timer = 0;
+						if (BitOrders.Count > 0 && BitOrderProcessNext(BitOrders[0]))
+						{
+							BitOrders.Remove(BitOrders[0]);
+						}
+					}
+				} break;
+
+			default: break;
 		}
 	}
 
 	public void SpawnNode(BitTypes type)
 	{
-		int idx = CurrentIndex;
-		CurrentIndex = (CurrentIndex + 1) % MAX_BITS;
-/*		do
-		{
-			idx = CurrentIndex;
-			CurrentIndex = (CurrentIndex + 1) % MAX_BITS;
-		} while (BitStatesSparse[idx] != -1);*/
+		int idx;
+				do
+				{
+					idx = CurrentIndex;
+					CurrentIndex = (CurrentIndex + 1) % MAX_BITS;
+				} while (BitStatesSparse[idx] != -1);
 
-		BitPool[idx].Position = SpawnPosition;
+		PhysicsServer2D.BodySetState(
+			BitPool[idx].GetRid(),
+			PhysicsServer2D.BodyState.Transform,
+			Transform2D.Identity.Translated(SpawnPosition));
+
+		BitPool[idx].ProcessMode = ProcessModeEnum.Always;
 		BitPool[idx].AngularVelocity = 0;
 		BitPool[idx].Freeze = false;
 
-
 		Sprite2D sprite = BitPool[idx].GetNode<Sprite2D>(new NodePath("./Sprite2D"));
 
-		Debug.Assert(type != BitTypes.MaxBitTypes);
+		BitCup.Debug.Assert(type != BitTypes.MaxBitTypes);
 
 		switch (type)
 		{
@@ -207,7 +256,6 @@ public partial class BitManager : Node2D
 		}
 
 		sprite.Show();
-		BitPool[idx].ProcessMode = ProcessModeEnum.Always;
 
 		BitStatesSparse[idx] = BitStatesDenseCount;
 		BitStatesDense[BitStatesDenseCount] = new BitState(idx);
@@ -249,33 +297,26 @@ public partial class BitManager : Node2D
 		return isFinished;
 	}
 
-	public void AddOrderWithCheck(BitOrder order)
+	public void CreateOrderWithChecks(int amount)
 	{
-#if DEBUG
-		bool containedNoBits = true;
-		for (int i = 0; i <  order.BitAmounts.Length; ++i)
-		{
-			if (order.BitAmounts[i] > 0)
-			{
-				containedNoBits = false;
-			}
-		}
+		if (amount <= 0)
+			return;
 
-		if (containedNoBits)
-		{
-			GD.PrintErr("Order contained no bits!");
-			Debug.Assert(!containedNoBits);
-		}
-#endif
+		BitOrder bitOrder = new BitOrder();
+		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (byte)(amount %= 10000);
+		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (byte)(amount %= 5000);
+		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (byte)(amount %= 1000);
+		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (byte)(amount %= 100);
+		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (byte)(amount);
 
-		if (BitOrders.Count == MAX_ORDERS)
+		if (BitOrders.Count == BitOrders.Capacity)
 		{
 			GD.PrintErr("Bit orders capacity reached!");
-			Debug.Assert(BitOrders.Count < MAX_ORDERS);
+			BitCup.Debug.Assert(BitOrders.Count < BitOrders.Capacity);
 			return;
 		}
 
-		BitOrders.Add(order);
+		BitOrders.Add(bitOrder);
 	}
 
 	private void OnBodyExited(Node2D body)

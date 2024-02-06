@@ -97,6 +97,22 @@ layout_mode = 2
 text = "Run Test
 "
 
+[node name="TextChannelName" type="LineEdit" parent="UI"]
+layout_mode = 2
+placeholder_text = "channel name"
+
+[node name="BtnConnectToChannel" type="Button" parent="UI"]
+layout_mode = 2
+text = "Connect to Channel"
+
+[node name="GridContainer2" type="GridContainer" parent="UI"]
+layout_mode = 2
+columns = 2
+
+[node name="CheckBoxAutoConnect" type="CheckBox" parent="UI/GridContainer2"]
+layout_mode = 2
+text = "Auto Connect"
+
 [node name="DebugUI" type="VBoxContainer" parent="."]
 anchors_preset = 1
 anchor_left = 1.0
@@ -124,4 +140,5 @@ text = "
 "
 
 [node name="UIController" type="Node" parent="."]
+process_priority = -1
 script = ExtResource("5_gk6s4")
