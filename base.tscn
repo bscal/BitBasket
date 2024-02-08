@@ -13,10 +13,10 @@
 absorbent = true
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_mrrwj"]
-size = Vector2(211, 338)
+size = Vector2(220, 339)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_111ms"]
-size = Vector2(142, 109.5)
+size = Vector2(176, 289)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gwl3m"]
 size = Vector2(1648, 1951)
@@ -57,7 +57,7 @@ texture = ExtResource("2_wget7")
 position = Vector2(745, 476)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea"]
-position = Vector2(93.5, 145)
+position = Vector2(94, 144.5)
 shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
@@ -68,7 +68,7 @@ gravity_direction = Vector2(0, 0)
 gravity = 0.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceTriggerArea"]
-position = Vector2(94, 219.75)
+position = Vector2(94, 146.5)
 shape = SubResource("RectangleShape2D_111ms")
 
 [node name="BoundsArea" type="Area2D" parent="."]
@@ -158,6 +158,9 @@ text = "
 "
 
 [node name="LabelDebugChannel" type="Label" parent="DebugUI"]
+layout_mode = 2
+
+[node name="LabelDebugBitsInArea" type="Label" parent="DebugUI"]
 layout_mode = 2
 
 [node name="UIController" type="Node" parent="."]

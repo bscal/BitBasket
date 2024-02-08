@@ -1,5 +1,6 @@
 using BitCup;
 using Godot;
+using System;
 using System.Collections.Generic;
 
 public enum State
@@ -43,10 +44,11 @@ public partial class BitManager : Node2D
 {
 	public const int MAX_BITS = 512;
 	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
-	public const float BIT_TIMER = 0.15f;
+	public const float BIT_TIMER = 0.25f;
 
 	public int CurrentIndex = 0;
 	public RigidBody2D[] BitPool = new RigidBody2D[MAX_BITS];
+	public Sprite2D[] SpriteCache = new Sprite2D[MAX_BITS];
 
 	public int[] BitStatesSparse = new int[MAX_BITS];
 	public int BitStatesDenseCount;
@@ -101,10 +103,12 @@ public partial class BitManager : Node2D
 		}
 
 		ForceArea = GetNode<Area2D>(new NodePath("../ForceArea"));
+		ForceArea.BodyEntered += ForceArea_OnBodyEnter;
+		ForceArea.BodyExited += ForceArea_OnBodyExited;
+
 		ForceTriggerArea = GetNode<Area2D>(new NodePath("../ForceTriggerArea"));
 		BoundsArea = GetNode<Area2D>(new NodePath("../BoundsArea"));
-
-		BoundsArea.BodyExited += OnBodyExited;
+		BoundsArea.BodyExited += BoundsArea_OnBodyExited;
 
 		SpawnPosition = spawnNode.Position;
 
@@ -121,11 +125,50 @@ public partial class BitManager : Node2D
 			BitPool[i].Position = SpawnPosition;
 			AddChild(BitPool[i]);
 
+			SpriteCache[i] = BitPool[i].GetNode<Sprite2D>(new NodePath("./Sprite2D"));
+			Debug.Assert(SpriteCache[i] != null);
+
 			HideBit(i);
 
 			BitStatesSparse[i] = -1;
 		}
 
+	}
+
+	public int BitCount;
+	public float TotalMass;
+
+	private void ForceArea_OnBodyEnter(Node2D body)
+	{
+		if (body is RigidBody2D rb)
+		{
+			++BitCount;
+			TotalMass += rb.Mass;
+
+			if ((rb.Mass > 1.0f && BitCount >= 24)
+				|| (rb.Mass > 7.0f && BitCount >= 12)
+				|| (rb.Mass > 31.0f && BitCount >= 2))
+			{
+				Vector2 force = Vector2.Up * 4.0f * new Vector2(1.0f, rb.Mass * 96.0f);
+
+				foreach (var bit in ForceTriggerArea.GetOverlappingBodies())
+				{
+					if (bit is RigidBody2D bitRB)
+					{
+						bitRB.ApplyImpulse(force);
+					}
+				}
+			}
+		}
+	}
+
+	private void ForceArea_OnBodyExited(Node2D body)
+	{
+		if (body is RigidBody2D rb)
+		{
+			--BitCount;
+			TotalMass -= rb.Mass;
+		}
 	}
 
 	public override void _Notification(int what)
@@ -154,32 +197,6 @@ public partial class BitManager : Node2D
 				} break;
 			case (State.Running):
 				{
-					for (int i = BitStatesDenseCount - 1; i >= 0; --i)
-					{
-						BitState state = (BitState)BitStatesDense[i];
-						if (!state.HasExploded)
-						{
-							if (ForceTriggerArea.OverlapsBody(BitPool[state.Index]))
-							{
-								BitStatesDense[i].HasExploded = true;
-
-								float magnitude = BitPool[state.Index].LinearVelocity.Y;
-								float mass = BitPool[state.Index].Mass;
-
-								foreach (Node2D areaNode in ForceArea.GetOverlappingBodies())
-								{
-									if (areaNode is RigidBody2D rb && rb.Mass < mass)
-									{
-										Vector2 force = Vector2.Up;
-										force.Y *= (magnitude) * (mass * 2.0f);
-										rb.ApplyImpulse(force);
-									}
-
-								}
-							}
-						}
-					}
-
 					Timer += (float)delta;
 					if (Timer > BIT_TIMER)
 					{
@@ -213,8 +230,6 @@ public partial class BitManager : Node2D
 		BitPool[idx].AngularVelocity = 0;
 		BitPool[idx].Freeze = false;
 
-		Sprite2D sprite = BitPool[idx].GetNode<Sprite2D>(new NodePath("./Sprite2D"));
-
 		BitCup.Debug.Assert(type != BitTypes.MaxBitTypes);
 
 		switch (type)
@@ -223,40 +238,40 @@ public partial class BitManager : Node2D
 				{
 					BitPool[idx].Mass = 1;
 					BitPool[idx].LinearVelocity = Vector2.Zero;
-					sprite.Texture = (Texture2D)Bit1Texture;
+					SpriteCache[idx].Texture = (Texture2D)Bit1Texture;
 				} break;
 			case BitTypes.Bit100:
 				{
-					BitPool[idx].Mass = 10;
+					BitPool[idx].Mass = 4;
 					BitPool[idx].LinearVelocity = Vector2.Zero;
-					sprite.Texture = (Texture2D)Bit100Texture;
+					SpriteCache[idx].Texture = (Texture2D)Bit100Texture;
 				} break;
 			case BitTypes.Bit1000:
 				{
-					BitPool[idx].Mass = 50;
+					BitPool[idx].Mass = 8;
 					BitPool[idx].LinearVelocity = Vector2.Zero;
-					sprite.Texture = (Texture2D)Bit1000Texture;
+					SpriteCache[idx].Texture = (Texture2D)Bit1000Texture;
 				}
 				break;
 			case BitTypes.Bit5000:
 				{
-					BitPool[idx].Mass = 250;
+					BitPool[idx].Mass = 16;
 					BitPool[idx].LinearVelocity = Vector2.Zero;
-					sprite.Texture = (Texture2D)Bit5000Texture;
+					SpriteCache[idx].Texture = (Texture2D)Bit5000Texture;
 				}
 				break;
 			case BitTypes.Bit10000:
 				{
-					BitPool[idx].Mass = 500;
+					BitPool[idx].Mass = 32;
 					BitPool[idx].LinearVelocity = Vector2.Zero;
-					sprite.Texture = (Texture2D)Bit10000Texture;
+					SpriteCache[idx].Texture = (Texture2D)Bit10000Texture;
 				}
 				break;
 			default:
 				GD.PrintErr("Wrong type"); break;
 		}
 
-		sprite.Show();
+		SpriteCache[idx].Show();
 
 		BitStatesSparse[idx] = BitStatesDenseCount;
 		BitStatesDense[BitStatesDenseCount] = new BitState(idx);
@@ -318,11 +333,10 @@ public partial class BitManager : Node2D
 	public void HideBit(int bitId)
 	{
 		BitPool[bitId].ProcessMode = ProcessModeEnum.Disabled;
-		BitPool[bitId].GetNode<Sprite2D>(new NodePath("./Sprite2D")).Hide();
-
+		SpriteCache[bitId].Hide();
 	}
 
-	private void OnBodyExited(Node2D body)
+	private void BoundsArea_OnBodyExited(Node2D body)
 	{
 		if (body is RigidBody2D rb)
 		{

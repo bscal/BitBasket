@@ -14,6 +14,7 @@ public partial class UIController : Node
 	private Label LabelDebugActiveBits;
 	private Label LabelDebugOrdersQueued;
 	private Label LabelDebugChannel;
+	private Label LabelDebugBitsInArea;
 
 	private LineEdit TextChannelName;
 	private Button BtnConnectToChannel;
@@ -62,6 +63,9 @@ public partial class UIController : Node
 
 		LabelDebugChannel = GetNode<Label>(new NodePath("../DebugUI/LabelDebugChannel"));
 		Debug.Assert(LabelDebugChannel != null);
+
+		LabelDebugBitsInArea = GetNode<Label>(new NodePath("../DebugUI/LabelDebugBitsInArea"));
+		Debug.Assert(LabelDebugBitsInArea != null);
 
 		TextChannelName = GetNode<LineEdit>(new NodePath("../UI/TextChannelName"));
 		Debug.Assert(TextChannelName != null);
@@ -151,6 +155,8 @@ public partial class UIController : Node
 					? BitManager.TwitchManager.Client.JoinedChannels[0].Channel
 					: "None";
 			LabelDebugChannel.Text = string.Format("Channel: {0}", connectedChannel);
+
+			LabelDebugBitsInArea.Text = string.Format("BitsInCup: {0}", BitManager.BitCount);
 		}
 	}
 }
