@@ -28,8 +28,8 @@ namespace BitCup
 				string[] lines = File.ReadAllLines(path);
 				foreach (string line in lines)
 				{
-					if (string.IsNullOrEmpty(line) || line.StartsWith("//")) continue;
-
+					if (string.IsNullOrEmpty(line) || line.StartsWith("//"))
+						continue;
 
 					if (line.StartsWith("username: "))
 						res.Username = line.Split(' ')[1];
@@ -48,10 +48,6 @@ namespace BitCup
 		public static void Save(Config config)
 		{
 			string path = Path.Combine(Directory.GetCurrentDirectory(), FILENAME);
-			if (!File.Exists(path))
-			{
-				File.Create(path);
-			}
 
 			string[] lines = new string[2];
 			lines[0] = "username: " + config.Username;

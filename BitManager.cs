@@ -73,7 +73,7 @@ public partial class BitManager : Node2D
 
 	public Config Config;
 
-	public State State = State.PreStart;
+	public State State;
 
 	private Vector2 SpawnPosition;
 	private float Timer;
@@ -82,6 +82,8 @@ public partial class BitManager : Node2D
 	public override void _Ready()
 	{
 		Engine.MaxFps = 60;
+
+		State = State.PreStart;
 
 		TwitchManager = new TwitchManager(this);
 
@@ -119,8 +121,7 @@ public partial class BitManager : Node2D
 			BitPool[i].Position = SpawnPosition;
 			AddChild(BitPool[i]);
 
-			BitPool[i].ProcessMode = ProcessModeEnum.Disabled;
-			BitPool[i].GetNode<Sprite2D>(new NodePath("./Sprite2D")).Hide();
+			HideBit(i);
 
 			BitStatesSparse[i] = -1;
 		}
@@ -272,6 +273,7 @@ public partial class BitManager : Node2D
 				--order.BitAmounts[i];
 				SpawnNode((BitTypes)i);
 
+				// If last bit type to check and 0
 				if (i == (int)BitTypes.MaxBitTypes - 1 && order.BitAmounts[i] == 0)
 				{
 					isFinished = true;
@@ -283,30 +285,24 @@ public partial class BitManager : Node2D
 		return isFinished;
 	}
 
-	public bool ProcessOrder(BitOrder bitOrder)
-	{
-		bool isFinished = false;
-		for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
-		{
-			for (int bits = 0; bits < bitOrder.BitAmounts[i]; ++bits)
-			{
-				SpawnNode((BitTypes)i);
-				isFinished = true;
-			}
-		}
-		return isFinished;
-	}
-
 	public void CreateOrderWithChecks(int amount)
 	{
 		if (amount <= 0)
 			return;
 
 		BitOrder bitOrder = new BitOrder();
-		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (byte)(amount %= 10000);
-		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (byte)(amount %= 5000);
-		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (byte)(amount %= 1000);
-		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (byte)(amount %= 100);
+		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (byte)(amount / 10000);
+		amount %= 10000;
+
+		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (byte)(amount / 5000);
+		amount %= 5000;
+
+		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (byte)(amount / 1000);
+		amount %= 1000;
+
+		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (byte)(amount / 100);
+		amount %= 100;
+
 		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (byte)(amount);
 
 		if (BitOrders.Count == BitOrders.Capacity)
@@ -317,6 +313,13 @@ public partial class BitManager : Node2D
 		}
 
 		BitOrders.Add(bitOrder);
+	}
+
+	public void HideBit(int bitId)
+	{
+		BitPool[bitId].ProcessMode = ProcessModeEnum.Disabled;
+		BitPool[bitId].GetNode<Sprite2D>(new NodePath("./Sprite2D")).Hide();
+
 	}
 
 	private void OnBodyExited(Node2D body)
@@ -349,8 +352,7 @@ public partial class BitManager : Node2D
 
 				--BitStatesDenseCount;
 
-				BitPool[idx].ProcessMode = ProcessModeEnum.Disabled;
-				BitPool[idx].GetNode<Sprite2D>(new NodePath("./Sprite2D")).Hide();
+				HideBit(id);
 			}
 		}
 	}

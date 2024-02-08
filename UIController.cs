@@ -1,8 +1,5 @@
 using BitCup;
 using Godot;
-using System;
-using System.Linq;
-using System.Threading.Channels;
 
 public partial class UIController : Node
 {
@@ -11,20 +8,22 @@ public partial class UIController : Node
 
 	private Label LabelStatus;
 
-	private CheckButton BtnShowDebug;
-
-	private Button BtnRunTest;
-
 	private BoxContainer DebugUI;
 	private Label LabelDebugFPS;
 	private Label LabelDebugFrameTime;
 	private Label LabelDebugActiveBits;
 	private Label LabelDebugOrdersQueued;
+	private Label LabelDebugChannel;
 
 	private LineEdit TextChannelName;
 	private Button BtnConnectToChannel;
 
 	private CheckBox CheckBoxAutoConnect;
+	private CheckBox CheckBoxShowDebug;
+
+	private Button BtnClearBits;
+	private Button BtnRunTest;
+
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
@@ -32,16 +31,18 @@ public partial class UIController : Node
 		BitManager = GetNode<BitManager>(new NodePath("../BitManager"));
 		Debug.Assert(BitManager != null);
 
-		LabelStatus = GetNode<Label>(new NodePath("../UI/LabelStatus"));
+		LabelStatus = GetNode<Label>(new NodePath("../UI/PanelContainer/MarginContainer/LabelStatus"));
+		Debug.Assert(LabelStatus != null);
 
-		BtnShowDebug = GetNode<CheckButton>(new NodePath("../UI/GridContainer/BtnShowDebug"));
-		Debug.Assert(BtnShowDebug != null);
-		BtnShowDebug.ButtonDown += BtnShowDebugPressed;
+		CheckBoxAutoConnect = GetNode<CheckBox>(new NodePath("../UI/Bools/CheckBoxAutoConnect"));
+		Debug.Assert(CheckBoxAutoConnect != null);
 
-		BtnRunTest = GetNode<Button>(new NodePath("../UI/VBoxContainer/BtnRunTest"));
-		Debug.Assert(BtnRunTest != null);
-		BtnRunTest.Pressed += BtnRunTestPressed;
-
+		CheckBoxShowDebug = GetNode<CheckBox>(new NodePath("../UI/Bools/CheckBoxShowDebug"));
+		Debug.Assert(CheckBoxShowDebug != null);
+		CheckBoxShowDebug.Pressed += () =>
+		{
+			DebugUI.Visible = !DebugUI.Visible;
+		};
 
 		DebugUI = GetNode<BoxContainer>(new NodePath("../DebugUI"));
 		Debug.Assert(DebugUI != null);
@@ -59,8 +60,15 @@ public partial class UIController : Node
 		LabelDebugOrdersQueued = GetNode<Label>(new NodePath("../DebugUI/LabelDebugOrdersQueued"));
 		Debug.Assert(LabelDebugOrdersQueued != null);
 
+		LabelDebugChannel = GetNode<Label>(new NodePath("../DebugUI/LabelDebugChannel"));
+		Debug.Assert(LabelDebugChannel != null);
+
 		TextChannelName = GetNode<LineEdit>(new NodePath("../UI/TextChannelName"));
 		Debug.Assert(TextChannelName != null);
+		if (!string.IsNullOrEmpty(BitManager.Config.Username))
+		{
+			TextChannelName.Text = BitManager.Config.Username; 
+		}
 
 		BtnConnectToChannel = GetNode<Button>(new NodePath("../UI/BtnConnectToChannel"));
 		Debug.Assert(BtnConnectToChannel != null);
@@ -70,8 +78,23 @@ public partial class UIController : Node
 			BitManager.TwitchManager.OAuthServerStart();
 		};
 
-		CheckBoxAutoConnect = GetNode<CheckBox>(new NodePath("../UI/GridContainer2/CheckBoxAutoConnect"));
-		Debug.Assert(CheckBoxAutoConnect != null);
+		BtnClearBits = GetNode<Button>(new NodePath("../UI/BtnClearBits"));
+		Debug.Assert(BtnClearBits != null);
+		BtnClearBits.Pressed += () =>
+		{
+			for (int i = 0; i < BitManager.BitStatesDenseCount; ++i)
+			{
+				int index = BitManager.BitStatesDense[i].Index;
+				BitManager.BitStatesSparse[index] = -1;
+
+				BitManager.HideBit(index);
+			}
+			BitManager.BitStatesDenseCount = 0;
+		};
+
+		BtnRunTest = GetNode<Button>(new NodePath("../UI/BtnRunTest"));
+		Debug.Assert(BtnRunTest != null);
+		BtnRunTest.Pressed += BtnRunTestPressed;
 	}
 
 	private void UpdateValues()
@@ -92,11 +115,6 @@ public partial class UIController : Node
 		BitManager.BitOrders.Add(testOrder);
 	}
 
-	private void BtnShowDebugPressed()
-	{
-		DebugUI.Visible = !DebugUI.Visible;
-	}
-
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
@@ -104,39 +122,35 @@ public partial class UIController : Node
 			&& BitManager.TwitchManager.Client != null
 			&& BitManager.TwitchManager.Client.IsConnected)
 		{
-			BtnConnectToChannel.AddThemeColorOverride("font_color", Colors.DarkGreen);
+			LabelStatus.Text = "Status: Connected";
+			LabelStatus.AddThemeColorOverride("font_color", Colors.Green);
 		}
 		else
 		{
-			BtnConnectToChannel.AddThemeColorOverride("font_color", Colors.DarkRed);
+			LabelStatus.Text = "Status: Not Connected";
+			LabelStatus.AddThemeColorOverride("font_color", Colors.Red);
 		}
 
-		if (BitManager.State == State.Running)
+		if (DebugUI.Visible)
 		{
-			for (int i = 0; i < BitManager.TwitchManager.Client.JoinedChannels.Count; ++i)
-			{
-				if (BitManager.TwitchManager.Client.JoinedChannels[i].Channel == BitManager.Config.Username)
-				{
-					BtnConnectToChannel.AddThemeColorOverride("font_color", Colors.DarkGreen);
-				}
-				else
-				{
-					BtnConnectToChannel.AddThemeColorOverride("background_color", Colors.DarkRed);
-				}
-			}
+			LabelDebugFPS.Text = string.Format("FPS: {0}",
+				Performance.Singleton.GetMonitor(Performance.Monitor.TimeFps));
 
-			if (DebugUI.Visible)
-			{
-				LabelDebugFPS.Text = string.Format("FPS: {0}",
-					Performance.Singleton.GetMonitor(Performance.Monitor.TimeFps));
+			LabelDebugFrameTime.Text = string.Format("FrameTime: {0:0.00}ms",
+				Performance.Singleton.GetMonitor(Performance.Monitor.TimeProcess) * 1000);
 
-				LabelDebugFrameTime.Text = string.Format("FrameTime: {0:0.00}ms",
-					Performance.Singleton.GetMonitor(Performance.Monitor.TimeProcess) * 1000);
+			LabelDebugActiveBits.Text = string.Format("ActiveBits: {0}", BitManager.BitStatesDenseCount);
 
-				LabelDebugActiveBits.Text = string.Format("ActiveBits: {0}", BitManager.BitStatesDenseCount);
+			LabelDebugOrdersQueued.Text = string.Format("QueuedOrders: {0}", BitManager.BitOrders.Count);
 
-				LabelDebugOrdersQueued.Text = string.Format("QueuedOrders: {0}", BitManager.BitOrders.Count);
-			}
+			string connectedChannel =
+				(BitManager.TwitchManager != null
+				&& BitManager.TwitchManager.Client != null
+				&& BitManager.TwitchManager.Client.IsConnected
+				&& BitManager.TwitchManager.Client.JoinedChannels.Count > 0) 
+					? BitManager.TwitchManager.Client.JoinedChannels[0].Channel
+					: "None";
+			LabelDebugChannel.Text = string.Format("Channel: {0}", connectedChannel);
 		}
 	}
 }

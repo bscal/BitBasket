@@ -82,9 +82,11 @@ namespace BitCup
 			string scopeStr = String.Join(" ", scopeArray);
 			scopeStr = scopeStr.URIEncode();
 
+			string twitchRedirectURL = $"http://{TWITCH_REDIRECT_ADDRESS}:{TWITCH_REDIRECT_PORT}";
+
 			string oAuthURL = string.Format(
-				"https://id.twitch.tv/oauth2/authorize?response_type=token&client_id={0}&redirect_uri=http://localhost:8080&scope={1}",
-			CLIENT_ID, scopeStr);
+				"https://id.twitch.tv/oauth2/authorize?response_type=token&client_id={0}&redirect_uri={1}&scope={2}",
+			CLIENT_ID, twitchRedirectURL, scopeStr);
 
 			GD.Print("OAuthUrl: " + oAuthURL);
 			OS.ShellOpen(oAuthURL);
@@ -97,8 +99,6 @@ namespace BitCup
 				StreamPeerTcp = OAuthTCPServer.TakeConnection();
 			}
 			
-			
-
 			if (StreamPeerTcp != null)
 			{
 				while (StreamPeerTcp.GetAvailableBytes() > 0)
@@ -110,8 +110,6 @@ namespace BitCup
 					}
 				}
 			}
-
-
 
 #if DEBUG
 			GD.Print("Server received message");
@@ -252,6 +250,8 @@ namespace BitCup
 				GD.Print("Connected to TwitchAPI");
 				Client.JoinChannel(Client.TwitchUsername);
 			}
+
+			Config.Save(BitManager.Config);
 
 			BitManager.State = State.Running;
 		}
