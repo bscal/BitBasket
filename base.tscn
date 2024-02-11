@@ -16,7 +16,7 @@ absorbent = true
 size = Vector2(220, 339)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_111ms"]
-size = Vector2(176, 289)
+size = Vector2(176, 284)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gwl3m"]
 size = Vector2(1648, 1951)
@@ -36,7 +36,7 @@ Bit5000Texture = ExtResource("5_fhd8b")
 Bit10000Texture = ExtResource("6_wfbga")
 
 [node name="SpawnPosition" type="Node2D" parent="BitManager"]
-position = Vector2(833, 101)
+position = Vector2(833, -63)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 position = Vector2(682, 390)
@@ -68,7 +68,7 @@ gravity_direction = Vector2(0, 0)
 gravity = 0.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceTriggerArea"]
-position = Vector2(94, 146.5)
+position = Vector2(94, 149)
 shape = SubResource("RectangleShape2D_111ms")
 
 [node name="BoundsArea" type="Area2D" parent="."]
@@ -78,90 +78,100 @@ visible = false
 position = Vector2(799, -53.5)
 shape = SubResource("RectangleShape2D_gwl3m")
 
-[node name="UI" type="VBoxContainer" parent="."]
-offset_left = 4.0
-offset_top = 4.0
-offset_right = 148.0
-offset_bottom = 35.0
+[node name="UIController" type="Node" parent="."]
+script = ExtResource("5_gk6s4")
 
-[node name="PanelContainer" type="PanelContainer" parent="UI"]
+[node name="Container2" type="AspectRatioContainer" parent="."]
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 1453.0
+offset_right = 1603.0
+offset_bottom = 158.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DebugUI" type="VBoxContainer" parent="Container2"]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="UI/PanelContainer"]
+[node name="LabelDebugMode" type="Label" parent="Container2/DebugUI"]
+layout_mode = 2
+
+[node name="LabelDebugVersion" type="Label" parent="Container2/DebugUI"]
+layout_mode = 2
+
+[node name="LabelDebugFPS" type="Label" parent="Container2/DebugUI"]
+layout_mode = 2
+
+[node name="LabelDebugFrameTime" type="Label" parent="Container2/DebugUI"]
+layout_mode = 2
+
+[node name="LabelDebugActiveBits" type="Label" parent="Container2/DebugUI"]
+layout_mode = 2
+text = "
+"
+
+[node name="LabelDebugOrdersQueued" type="Label" parent="Container2/DebugUI"]
+layout_mode = 2
+text = "
+"
+
+[node name="LabelDebugChannel" type="Label" parent="Container2/DebugUI"]
+layout_mode = 2
+
+[node name="LabelDebugBitsInArea" type="Label" parent="Container2/DebugUI"]
+layout_mode = 2
+
+[node name="Container" type="AspectRatioContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="UI" type="VBoxContainer" parent="Container"]
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="Container/UI"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Container/UI/PanelContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 4
 theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 4
 theme_override_constants/margin_bottom = 4
 
-[node name="LabelStatus" type="Label" parent="UI/PanelContainer/MarginContainer"]
+[node name="LabelStatus" type="Label" parent="Container/UI/PanelContainer/MarginContainer"]
 layout_mode = 2
 text = "Status: Not Connected
 "
 
-[node name="TextChannelName" type="LineEdit" parent="UI"]
+[node name="TextChannelName" type="LineEdit" parent="Container/UI"]
 layout_mode = 2
 placeholder_text = "channel name"
 alignment = 1
 
-[node name="BtnConnectToChannel" type="Button" parent="UI"]
+[node name="BtnConnectToChannel" type="Button" parent="Container/UI"]
 layout_mode = 2
 theme = SubResource("Theme_22xiq")
 theme_override_colors/icon_normal_color = Color(0.819608, 0, 0, 1)
 text = "Connect to Channel"
 
-[node name="Bools" type="GridContainer" parent="UI"]
+[node name="Bools" type="GridContainer" parent="Container/UI"]
 layout_mode = 2
 
-[node name="CheckBoxAutoConnect" type="CheckBox" parent="UI/Bools"]
+[node name="CheckBoxAutoConnect" type="CheckBox" parent="Container/UI/Bools"]
 layout_mode = 2
 text = "Auto Connect"
 
-[node name="CheckBoxShowDebug" type="CheckBox" parent="UI/Bools"]
+[node name="CheckBoxShowDebug" type="CheckBox" parent="Container/UI/Bools"]
 layout_mode = 2
 text = "Show Debug
 "
 
-[node name="BtnClearBits" type="Button" parent="UI"]
+[node name="BtnClearBits" type="Button" parent="Container/UI"]
 layout_mode = 2
 text = "Clear Bucket"
 
-[node name="BtnRunTest" type="Button" parent="UI"]
+[node name="BtnRunTest" type="Button" parent="Container/UI"]
 layout_mode = 2
 text = "Run Test
 "
-
-[node name="DebugUI" type="VBoxContainer" parent="."]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = 1409.0
-offset_top = 11.0
-offset_right = 1590.0
-offset_bottom = 192.0
-grow_horizontal = 0
-
-[node name="LabelDebugFPS" type="Label" parent="DebugUI"]
-layout_mode = 2
-
-[node name="LabelDebugFrameTime" type="Label" parent="DebugUI"]
-layout_mode = 2
-
-[node name="LabelDebugActiveBits" type="Label" parent="DebugUI"]
-layout_mode = 2
-text = "
-"
-
-[node name="LabelDebugOrdersQueued" type="Label" parent="DebugUI"]
-layout_mode = 2
-text = "
-"
-
-[node name="LabelDebugChannel" type="Label" parent="DebugUI"]
-layout_mode = 2
-
-[node name="LabelDebugBitsInArea" type="Label" parent="DebugUI"]
-layout_mode = 2
-
-[node name="UIController" type="Node" parent="."]
-script = ExtResource("5_gk6s4")

@@ -40,21 +40,28 @@ public struct BitState
 	}
 }
 
+public struct User
+{
+	public string Username;
+	public string OAuth;
+	public string UserId;
+}
+
 public partial class BitManager : Node2D
 {
+	public const int VersionMajor = 0;
+	public const int VersionMinor = 1;
+
 	public const int MAX_BITS = 512;
 	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
 	public const float BIT_TIMER = 0.25f;
 
-	public int CurrentIndex = 0;
-	public RigidBody2D[] BitPool = new RigidBody2D[MAX_BITS];
-	public Sprite2D[] SpriteCache = new Sprite2D[MAX_BITS];
+	public const float BIT_1_MASS = 1.0f;
+	public const float BIT_100_MASS = 4.0f;
+	public const float BIT_1000_MASS = 8.0f;
+	public const float BIT_5000_MASS = 16.0f;
+	public const float BIT_10000_MASS = 32.0f;
 
-	public int[] BitStatesSparse = new int[MAX_BITS];
-	public int BitStatesDenseCount;
-	public BitState[] BitStatesDense = new BitState[MAX_BITS];
-
-	public List<BitOrder> BitOrders = new List<BitOrder>(32);
 
 	[Export]
 	public Texture Bit1Texture;
@@ -71,11 +78,22 @@ public partial class BitManager : Node2D
 	public Area2D ForceTriggerArea;
 	public Area2D BoundsArea;
 
+	public int CurrentIndex;
+	public RigidBody2D[] BitPool = new RigidBody2D[MAX_BITS];
+	public Sprite2D[] SpriteCache = new Sprite2D[MAX_BITS];
+
+	public int[] BitStatesSparse = new int[MAX_BITS];
+
+	public int BitStatesDenseCount;
+	public BitState[] BitStatesDense = new BitState[MAX_BITS];
+
+	public List<BitOrder> BitOrders = new List<BitOrder>(32);
+
 	public TwitchManager TwitchManager;
-
 	public Config Config;
-
 	public State State;
+	public User User;
+	public int BitCount;
 
 	private Vector2 SpawnPosition;
 	private float Timer;
@@ -135,21 +153,19 @@ public partial class BitManager : Node2D
 
 	}
 
-	public int BitCount;
-	public float TotalMass;
-
 	private void ForceArea_OnBodyEnter(Node2D body)
 	{
 		if (body is RigidBody2D rb)
 		{
 			++BitCount;
-			TotalMass += rb.Mass;
 
-			if ((rb.Mass > 1.0f && BitCount >= 24)
-				|| (rb.Mass > 7.0f && BitCount >= 12)
-				|| (rb.Mass > 31.0f && BitCount >= 2))
+			if ((rb.Mass > BIT_100_MASS - 1 && BitCount >= 24)
+				|| (rb.Mass > BIT_1000_MASS - 1 && BitCount >= 12)
+				|| (rb.Mass > BIT_10000_MASS - 1 && BitCount >= 2))
 			{
-				Vector2 force = Vector2.Up * 4.0f * new Vector2(1.0f, rb.Mass * 96.0f);
+				float upForceAmp = 4.0f;
+				float massAmp = 96.0f;
+				Vector2 force = Vector2.Up * upForceAmp * new Vector2(1.0f, rb.Mass * massAmp);
 
 				foreach (var bit in ForceTriggerArea.GetOverlappingBodies())
 				{
@@ -167,7 +183,6 @@ public partial class BitManager : Node2D
 		if (body is RigidBody2D rb)
 		{
 			--BitCount;
-			TotalMass -= rb.Mass;
 		}
 	}
 
@@ -226,8 +241,12 @@ public partial class BitManager : Node2D
 			PhysicsServer2D.BodyState.Transform,
 			Transform2D.Identity.Translated(SpawnPosition));
 
+		PhysicsServer2D.BodySetState(
+			BitPool[idx].GetRid(),
+			PhysicsServer2D.BodyState.LinearVelocity,
+			new Vector2(GD.Randf() * 2.0f - 1.0f, 0.0f));
+
 		BitPool[idx].ProcessMode = ProcessModeEnum.Always;
-		BitPool[idx].AngularVelocity = 0;
 		BitPool[idx].Freeze = false;
 
 		BitCup.Debug.Assert(type != BitTypes.MaxBitTypes);
@@ -236,34 +255,29 @@ public partial class BitManager : Node2D
 		{
 			case BitTypes.Bit1:
 				{
-					BitPool[idx].Mass = 1;
-					BitPool[idx].LinearVelocity = Vector2.Zero;
+					BitPool[idx].Mass = BIT_1_MASS;
 					SpriteCache[idx].Texture = (Texture2D)Bit1Texture;
 				} break;
 			case BitTypes.Bit100:
 				{
-					BitPool[idx].Mass = 4;
-					BitPool[idx].LinearVelocity = Vector2.Zero;
+					BitPool[idx].Mass = BIT_100_MASS;
 					SpriteCache[idx].Texture = (Texture2D)Bit100Texture;
 				} break;
 			case BitTypes.Bit1000:
 				{
-					BitPool[idx].Mass = 8;
-					BitPool[idx].LinearVelocity = Vector2.Zero;
+					BitPool[idx].Mass = BIT_1000_MASS;
 					SpriteCache[idx].Texture = (Texture2D)Bit1000Texture;
 				}
 				break;
 			case BitTypes.Bit5000:
 				{
-					BitPool[idx].Mass = 16;
-					BitPool[idx].LinearVelocity = Vector2.Zero;
+					BitPool[idx].Mass = BIT_5000_MASS;
 					SpriteCache[idx].Texture = (Texture2D)Bit5000Texture;
 				}
 				break;
 			case BitTypes.Bit10000:
 				{
-					BitPool[idx].Mass = 32;
-					BitPool[idx].LinearVelocity = Vector2.Zero;
+					BitPool[idx].Mass = BIT_10000_MASS;
 					SpriteCache[idx].Texture = (Texture2D)Bit10000Texture;
 				}
 				break;

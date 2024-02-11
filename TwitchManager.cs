@@ -7,6 +7,7 @@ using TwitchLib.Communication.Clients;
 using System.IO;
 using Godot;
 using TwitchLib.Communication.Events;
+using static System.Net.WebRequestMethods;
 
 namespace BitCup
 {
@@ -295,6 +296,71 @@ namespace BitCup
 					}
 				}
 			}
+		}
+
+		private bool ValidateOAuth()
+		{
+			Debug.Assert(!string.IsNullOrEmpty(BitManager.User.OAuth));
+
+			if (string.IsNullOrEmpty(BitManager.User.OAuth))
+			{
+				return false;
+			}
+
+			const string URL = "https://id.twitch.tv/oauth2/validate";
+			string[] headers = new string[1];
+			headers[0] = "Authorization: OAuth " + BitManager.User.OAuth;
+
+
+			HttpRequest request = new HttpRequest();
+			request.RequestCompleted += Client_OnRequestCompleted;
+			Error err = request.Request(URL);
+			if (err != Error.Ok)
+			{
+				GD.PushError(err);
+				return false;
+			}
+
+			return true;
+		}
+
+		private void Client_OnRequestCompleted(long result, long responseCode, string[] headers, byte[] body)
+		{
+			if (responseCode == 200)
+			{
+				var json = new Json();
+				json.Parse(body.GetStringFromUtf8());
+
+				var response = json.Data.AsGodotDictionary();
+				
+				if (!response.TryGetValue("login", out Variant login))
+				{
+
+				}
+
+				if (!response.TryGetValue("user_id", out Variant userId))
+				{
+
+				}
+
+				if (BitManager.User.Username == login.AsString() &&
+					BitManager.User.UserId == userId.AsString())
+				{
+
+				}
+
+			}
+			else if (responseCode == 401)
+			{
+
+			}
+			else
+			{
+
+			}
+
+
+
 		}
 	}
 }

@@ -9,6 +9,8 @@ public partial class UIController : Node
 	private Label LabelStatus;
 
 	private BoxContainer DebugUI;
+	private Label LabelDebugMode;
+	private Label LabelDebugVersion;
 	private Label LabelDebugFPS;
 	private Label LabelDebugFrameTime;
 	private Label LabelDebugActiveBits;
@@ -25,6 +27,8 @@ public partial class UIController : Node
 	private Button BtnClearBits;
 	private Button BtnRunTest;
 
+	private const string UI_URL = "../Container/UI/";
+	private const string DEBUG_URL = "../Container2/DebugUI/";
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
@@ -32,49 +36,61 @@ public partial class UIController : Node
 		BitManager = GetNode<BitManager>(new NodePath("../BitManager"));
 		Debug.Assert(BitManager != null);
 
-		LabelStatus = GetNode<Label>(new NodePath("../UI/PanelContainer/MarginContainer/LabelStatus"));
+		LabelStatus = GetNode<Label>(new NodePath(UI_URL + "PanelContainer/MarginContainer/LabelStatus"));
 		Debug.Assert(LabelStatus != null);
 
-		CheckBoxAutoConnect = GetNode<CheckBox>(new NodePath("../UI/Bools/CheckBoxAutoConnect"));
+		CheckBoxAutoConnect = GetNode<CheckBox>(new NodePath(UI_URL +  "Bools/CheckBoxAutoConnect"));
 		Debug.Assert(CheckBoxAutoConnect != null);
 
-		CheckBoxShowDebug = GetNode<CheckBox>(new NodePath("../UI/Bools/CheckBoxShowDebug"));
+		CheckBoxShowDebug = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxShowDebug"));
 		Debug.Assert(CheckBoxShowDebug != null);
 		CheckBoxShowDebug.Pressed += () =>
 		{
 			DebugUI.Visible = !DebugUI.Visible;
 		};
 
-		DebugUI = GetNode<BoxContainer>(new NodePath("../DebugUI"));
+		DebugUI = GetNode<BoxContainer>(new NodePath(DEBUG_URL));
 		Debug.Assert(DebugUI != null);
 		DebugUI.Hide();
 
-		LabelDebugFPS = GetNode<Label>(new NodePath("../DebugUI/LabelDebugFPS"));
+		LabelDebugMode = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugMode"));
+		Debug.Assert(LabelDebugMode != null);
+#if DEBUG
+		LabelDebugMode.Text = "Debug";
+#else
+		LabelDebugMode.Text = "Release";
+#endif
+
+		LabelDebugVersion = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugVersion"));
+		Debug.Assert(LabelDebugVersion != null);
+		LabelDebugVersion.Text = string.Format("Version: {0}.{1}", BitManager.VersionMajor, BitManager.VersionMinor);
+
+		LabelDebugFPS = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugFPS"));
 		Debug.Assert(LabelDebugFPS != null);
 
-		LabelDebugFrameTime = GetNode<Label>(new NodePath("../DebugUI/LabelDebugFrameTime"));
+		LabelDebugFrameTime = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugFrameTime"));
 		Debug.Assert(LabelDebugFrameTime != null);
 
-		LabelDebugActiveBits = GetNode<Label>(new NodePath("../DebugUI/LabelDebugActiveBits"));
+		LabelDebugActiveBits = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugActiveBits"));
 		Debug.Assert(LabelDebugActiveBits != null);
 
-		LabelDebugOrdersQueued = GetNode<Label>(new NodePath("../DebugUI/LabelDebugOrdersQueued"));
+		LabelDebugOrdersQueued = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugOrdersQueued"));
 		Debug.Assert(LabelDebugOrdersQueued != null);
 
-		LabelDebugChannel = GetNode<Label>(new NodePath("../DebugUI/LabelDebugChannel"));
+		LabelDebugChannel = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugChannel"));
 		Debug.Assert(LabelDebugChannel != null);
 
-		LabelDebugBitsInArea = GetNode<Label>(new NodePath("../DebugUI/LabelDebugBitsInArea"));
+		LabelDebugBitsInArea = GetNode<Label>(new NodePath(DEBUG_URL + "/LabelDebugBitsInArea"));
 		Debug.Assert(LabelDebugBitsInArea != null);
 
-		TextChannelName = GetNode<LineEdit>(new NodePath("../UI/TextChannelName"));
+		TextChannelName = GetNode<LineEdit>(new NodePath(UI_URL + "TextChannelName"));
 		Debug.Assert(TextChannelName != null);
 		if (!string.IsNullOrEmpty(BitManager.Config.Username))
 		{
 			TextChannelName.Text = BitManager.Config.Username; 
 		}
 
-		BtnConnectToChannel = GetNode<Button>(new NodePath("../UI/BtnConnectToChannel"));
+		BtnConnectToChannel = GetNode<Button>(new NodePath(UI_URL + "BtnConnectToChannel"));
 		Debug.Assert(BtnConnectToChannel != null);
 		BtnConnectToChannel.Pressed += () =>
 		{
@@ -82,7 +98,7 @@ public partial class UIController : Node
 			BitManager.TwitchManager.OAuthServerStart();
 		};
 
-		BtnClearBits = GetNode<Button>(new NodePath("../UI/BtnClearBits"));
+		BtnClearBits = GetNode<Button>(new NodePath(UI_URL + "BtnClearBits"));
 		Debug.Assert(BtnClearBits != null);
 		BtnClearBits.Pressed += () =>
 		{
@@ -96,7 +112,7 @@ public partial class UIController : Node
 			BitManager.BitStatesDenseCount = 0;
 		};
 
-		BtnRunTest = GetNode<Button>(new NodePath("../UI/BtnRunTest"));
+		BtnRunTest = GetNode<Button>(new NodePath(UI_URL + "BtnRunTest"));
 		Debug.Assert(BtnRunTest != null);
 		BtnRunTest.Pressed += BtnRunTestPressed;
 	}
