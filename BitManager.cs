@@ -90,12 +90,13 @@ public partial class BitManager : Node2D
 	public List<BitOrder> BitOrders = new List<BitOrder>(32);
 
 	public TwitchManager TwitchManager;
-	public Config Config;
 	public State State;
 	public User User;
+	public bool ShouldAutoConnect;
+	public bool ShouldSaveBits;
 	public int BitCount;
+	public Vector2 SpawnPosition;
 
-	private Vector2 SpawnPosition;
 	private float Timer;
 
 	// Called when the node enters the scene tree for the first time.
@@ -107,10 +108,11 @@ public partial class BitManager : Node2D
 
 		TwitchManager = new TwitchManager(this);
 
-		Config = Config.Load();
-		if (!string.IsNullOrEmpty(Config.Username) && Config.AutoConnect)
+		Config.Load(this);
+
+		if (ShouldAutoConnect)
 		{
-			TwitchManager.OAuthServerStart();
+			TwitchManager.ValidateThanFetchOrConnect(User);
 		}
 
 		Node2D spawnNode = GetNode<Node2D>(new NodePath("./SpawnPosition"));
@@ -130,27 +132,17 @@ public partial class BitManager : Node2D
 
 		SpawnPosition = spawnNode.Position;
 
-		PackedScene bitScene = GD.Load<PackedScene>("res://bit.tscn");
-		if (bitScene == null)
+		// TODO add version check
+		if (LoadBitNodes())
 		{
-			GD.PrintErr(string.Format("Bit node could not be found"));
-			return;
+			GD.Print("GameState loaded");
+		}
+		else
+		{
+			InitBitPool();
 		}
 
-		for (int i = 0; i < MAX_BITS; ++i)
-		{
-			BitPool[i] = (RigidBody2D)bitScene.Instantiate();
-			BitPool[i].Position = SpawnPosition;
-			AddChild(BitPool[i]);
-
-			SpriteCache[i] = BitPool[i].GetNode<Sprite2D>(new NodePath("./Sprite2D"));
-			Debug.Assert(SpriteCache[i] != null);
-
-			HideBit(i);
-
-			BitStatesSparse[i] = -1;
-		}
-
+		RemoveSaveFile();
 	}
 
 	private void ForceArea_OnBodyEnter(Node2D body)
@@ -178,9 +170,34 @@ public partial class BitManager : Node2D
 		}
 	}
 
+	public void InitBitPool()
+	{
+		PackedScene bitScene = GD.Load<PackedScene>("res://bit.tscn");
+		if (bitScene == null)
+		{
+			GD.PrintErr(string.Format("Bit node could not be found"));
+			return;
+		}
+
+		for (int i = 0; i < MAX_BITS; ++i)
+		{
+			BitPool[i] = (RigidBody2D)bitScene.Instantiate();
+			BitPool[i].Position = SpawnPosition;
+			AddChild(BitPool[i]);
+
+			SpriteCache[i] = BitPool[i].GetNode<Sprite2D>(new NodePath("./Sprite2D"));
+			Debug.Assert(SpriteCache[i] != null);
+
+			HideBit(i);
+
+			BitStatesSparse[i] = -1;
+		}
+		BitStatesDenseCount = 0;
+	}
+
 	private void ForceArea_OnBodyExited(Node2D body)
 	{
-		if (body is RigidBody2D rb)
+		if (body is RigidBody2D)
 		{
 			--BitCount;
 		}
@@ -193,6 +210,13 @@ public partial class BitManager : Node2D
 			if (TwitchManager.Client != null && TwitchManager.Client.IsConnected)
 			{
 				TwitchManager.Client.Disconnect();
+			}
+
+			Config.Save(this);
+
+			if (ShouldSaveBits)
+			{
+				SaveBitNodes();
 			}
 		}
 	}
@@ -227,7 +251,7 @@ public partial class BitManager : Node2D
 		}
 	}
 
-	public void SpawnNode(BitTypes type)
+	private void SpawnNode(BitTypes type)
 	{
 		int idx;
 				do
@@ -292,7 +316,7 @@ public partial class BitManager : Node2D
 		++BitStatesDenseCount;
 	}
 
-	public bool BitOrderProcessNext(BitOrder order)
+	private bool BitOrderProcessNext(BitOrder order)
 	{
 		bool isFinished = false;
 		for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
@@ -383,5 +407,143 @@ public partial class BitManager : Node2D
 				HideBit(id);
 			}
 		}
+	}
+
+	private static Godot.Collections.Dictionary<string, Variant> SerializeBit(RigidBody2D node)
+	{
+		return new Godot.Collections.Dictionary<string, Variant>()
+		{
+			{ "Filename", node.SceneFilePath },
+			{ "Parent", node.GetParent().GetPath() },
+			{ "PosX", node.Position.X },
+			{ "PosY", node.Position.Y },
+			{ "LVelX", node.LinearVelocity.X },
+			{ "LVelY", node.LinearVelocity.Y },
+			{ "AVel", node.AngularVelocity },
+			{ "IsActive", node.ProcessMode == ProcessModeEnum.Always },
+			{ "Texture", node.GetNode<Sprite2D>(new NodePath("./Sprite2D")).Texture.ResourcePath },
+			{ "Mass", node.Mass }
+		};
+	}
+
+	private void RemoveSaveFile()
+	{
+		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Gamestate.save");
+		if (System.IO.File.Exists(savePath))
+		{
+			System.IO.File.Delete(savePath);
+		}
+	}
+
+	private void SaveBitNodes()
+	{
+		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Gamestate.save");
+
+		using var save = FileAccess.Open(savePath, FileAccess.ModeFlags.Write);
+		var nodes = GetTree().GetNodesInGroup("Persistent");
+		foreach (var saveNode in nodes)
+		{
+			if (saveNode is not RigidBody2D)
+			{
+				continue;
+			}
+
+			// Check the node is an instanced scene so it can be instanced again during load.
+			if (string.IsNullOrEmpty(saveNode.SceneFilePath))
+			{
+				GD.Print($"persistent node '{saveNode.Name}' is not an instanced scene, skipped");
+				continue;
+			}
+
+			// Call the node's save function.
+			var nodeData = SerializeBit((RigidBody2D)saveNode);
+
+			// Json provides a static method to serialized JSON string.
+			var jsonString = Json.Stringify(nodeData);
+
+			// Store the save dictionary as a new line in the save file.
+			save.StoreLine(jsonString);
+		}
+	}
+
+	private bool LoadBitNodes()
+	{
+		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Gamestate.save");
+
+		if (!FileAccess.FileExists(savePath))
+		{
+			return false; // Error! We don't have a save to load.
+		}
+
+		// We need to revert the game state so we're not cloning objects during loading.
+		// This will vary wildly depending on the needs of a project, so take care with
+		// this step.
+		// For our example, we will accomplish this by deleting saveable objects.
+		var saveNodes = GetTree().GetNodesInGroup("Persistent");
+		foreach (Node saveNode in saveNodes)
+		{
+			saveNode.QueueFree();
+		}
+
+		// Load the file line by line and process that dictionary to restore the object
+		// it represents.
+		using var saveGame = FileAccess.Open(savePath, FileAccess.ModeFlags.Read);
+
+		if (saveGame.GetLength() < MAX_BITS)
+		{
+			GD.Print("GameState save file does not meet size requirements");
+			return false;
+		}
+
+		int lineCount = 0;
+		while (saveGame.GetPosition() < saveGame.GetLength())
+		{
+
+			var jsonString = saveGame.GetLine();
+
+			// Creates the helper class to interact with JSON
+			var json = new Json();
+			var parseResult = json.Parse(jsonString);
+			if (parseResult != Error.Ok)
+			{
+				GD.Print($"JSON Parse Error: {json.GetErrorMessage()} in {jsonString} at line {json.GetErrorLine()}");
+				continue;
+			}
+
+			// Get the data from the JSON object
+			var nodeData = new Godot.Collections.Dictionary<string, Variant>((Godot.Collections.Dictionary)json.Data);
+
+			// Firstly, we need to create the object and add it to the tree and set its position.
+			var newObjectScene = GD.Load<PackedScene>(nodeData["Filename"].ToString());
+			var newObject = newObjectScene.Instantiate<RigidBody2D>();
+			GetNode(nodeData["Parent"].ToString()).AddChild(newObject);
+			newObject.Set(Node2D.PropertyName.Position, new Vector2((float)nodeData["PosX"], (float)nodeData["PosY"]));
+			newObject.Set(RigidBody2D.PropertyName.LinearVelocity, new Vector2((float)nodeData["LVelX"], (float)nodeData["LVelY"]));
+			newObject.Set(RigidBody2D.PropertyName.AngularVelocity, (float)nodeData["AVel"]);
+			newObject.Set(RigidBody2D.PropertyName.Mass, (float)nodeData["Mass"]);
+
+			BitPool[lineCount] = newObject;
+			SpriteCache[lineCount] = newObject.GetNode<Sprite2D>(new NodePath("./Sprite2D"));
+
+			if ((bool)nodeData["IsActive"])
+			{
+				SpriteCache[lineCount].Show();
+				SpriteCache[lineCount].Texture = ResourceLoader.Load<Texture2D>((string)nodeData["Texture"]); 
+				newObject.ProcessMode = ProcessModeEnum.Always;
+
+				BitStatesSparse[lineCount] = BitStatesDenseCount;
+				BitStatesDense[BitStatesDenseCount] = new BitState(lineCount);
+				++BitStatesDenseCount;
+			}
+			else
+			{
+				SpriteCache[lineCount].Hide();
+				newObject.ProcessMode = ProcessModeEnum.Disabled;
+				BitStatesSparse[lineCount] = -1;
+			}
+
+			++lineCount;
+		}
+		return true;
 	}
 }

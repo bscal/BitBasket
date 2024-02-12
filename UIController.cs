@@ -17,11 +17,13 @@ public partial class UIController : Node
 	private Label LabelDebugOrdersQueued;
 	private Label LabelDebugChannel;
 	private Label LabelDebugBitsInArea;
+	private Button ButtonDebugReload;
 
 	private LineEdit TextChannelName;
 	private Button BtnConnectToChannel;
 
 	private CheckBox CheckBoxAutoConnect;
+	private CheckBox CheckBoxCheckBoxSaveBits;
 	private CheckBox CheckBoxShowDebug;
 
 	private Button BtnClearBits;
@@ -41,6 +43,20 @@ public partial class UIController : Node
 
 		CheckBoxAutoConnect = GetNode<CheckBox>(new NodePath(UI_URL +  "Bools/CheckBoxAutoConnect"));
 		Debug.Assert(CheckBoxAutoConnect != null);
+		CheckBoxAutoConnect.ButtonPressed = BitManager.ShouldAutoConnect;
+		CheckBoxAutoConnect.Pressed += () =>
+		{
+			BitManager.ShouldAutoConnect = !BitManager.ShouldAutoConnect;
+		};
+
+
+		CheckBoxCheckBoxSaveBits = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxSaveBits"));
+		Debug.Assert(CheckBoxCheckBoxSaveBits != null);
+		CheckBoxCheckBoxSaveBits.ButtonPressed = BitManager.ShouldSaveBits;
+		CheckBoxCheckBoxSaveBits.Pressed += () =>
+		{
+			BitManager.ShouldSaveBits = !BitManager.ShouldSaveBits;
+		};
 
 		CheckBoxShowDebug = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxShowDebug"));
 		Debug.Assert(CheckBoxShowDebug != null);
@@ -83,11 +99,24 @@ public partial class UIController : Node
 		LabelDebugBitsInArea = GetNode<Label>(new NodePath(DEBUG_URL + "/LabelDebugBitsInArea"));
 		Debug.Assert(LabelDebugBitsInArea != null);
 
+		ButtonDebugReload = GetNode<Button>(new NodePath(DEBUG_URL + "/ButtonDebugReload"));
+		Debug.Assert(ButtonDebugReload != null);
+		ButtonDebugReload.Pressed += () =>
+		{
+			var saveNodes = GetTree().GetNodesInGroup("Persistent");
+			foreach (Node saveNode in saveNodes)
+			{
+				saveNode.Free();
+			}
+
+			BitManager.InitBitPool();
+		};
+
 		TextChannelName = GetNode<LineEdit>(new NodePath(UI_URL + "TextChannelName"));
 		Debug.Assert(TextChannelName != null);
-		if (!string.IsNullOrEmpty(BitManager.Config.Username))
+		if (!string.IsNullOrEmpty(BitManager.User.Username))
 		{
-			TextChannelName.Text = BitManager.Config.Username; 
+			TextChannelName.Text = BitManager.User.Username; 
 		}
 
 		BtnConnectToChannel = GetNode<Button>(new NodePath(UI_URL + "BtnConnectToChannel"));
@@ -95,13 +124,13 @@ public partial class UIController : Node
 		BtnConnectToChannel.Pressed += () =>
 		{
 			UpdateValues();
-			BitManager.TwitchManager.OAuthServerStart();
+			BitManager.TwitchManager.ValidateThanFetchOrConnect(BitManager.User);
 		};
 
 		BtnClearBits = GetNode<Button>(new NodePath(UI_URL + "BtnClearBits"));
 		Debug.Assert(BtnClearBits != null);
 		BtnClearBits.Pressed += () =>
-		{
+		{ 
 			for (int i = 0; i < BitManager.BitStatesDenseCount; ++i)
 			{
 				int index = BitManager.BitStatesDense[i].Index;
@@ -119,8 +148,8 @@ public partial class UIController : Node
 
 	private void UpdateValues()
 	{
-		BitManager.Config.Username = TextChannelName.Text;
-		BitManager.Config.AutoConnect = CheckBoxAutoConnect.ActionMode == BaseButton.ActionModeEnum.Press;
+		BitManager.User.Username = TextChannelName.Text;
+		BitManager.ShouldAutoConnect = CheckBoxAutoConnect.ActionMode == BaseButton.ActionModeEnum.Press;
 	}
 
 	private void BtnRunTestPressed()

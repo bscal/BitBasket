@@ -1,6 +1,5 @@
-﻿using System;
+﻿using Godot;
 using System.IO;
-
 
 namespace BitCup
 {
@@ -8,50 +7,64 @@ namespace BitCup
 	{
 		const string FILENAME = "config.txt";
 
-		public string Username;
-		public bool AutoConnect;
-
 		public static bool HasConfig()
 		{
 			string path = Path.Combine(Directory.GetCurrentDirectory(), FILENAME);
 			return File.Exists(path);
 		}
 
-		public static Config Load()
+		public static void Load(BitManager bitManager)
 		{
-			Config res = new Config();
-
 			string path = Path.Combine(Directory.GetCurrentDirectory(), FILENAME);
 
 			if (File.Exists(path))
 			{
+				GD.Print("Config found");
+
 				string[] lines = File.ReadAllLines(path);
 				foreach (string line in lines)
 				{
 					if (string.IsNullOrEmpty(line) || line.StartsWith("//"))
 						continue;
 
-					if (line.StartsWith("username: "))
-						res.Username = line.Split(' ')[1];
-					else if (line.StartsWith("auto_connect: "))
-						res.AutoConnect = bool.Parse(line.Split(' ')[1]);
-
+					if (line.StartsWith("user:"))
+					{
+						var split = line.Split(' ')[1].Split(';');
+						bitManager.User.Username = (split.Length >= 1) ? split[0] : string.Empty;
+						bitManager.User.OAuth = (split.Length >= 2) ? split[1] : string.Empty;
+					}
+					else if (line.StartsWith("auto_connect:"))
+					{
+						bitManager.ShouldAutoConnect = bool.Parse(line.Split(' ')[1]);
+					}
+					else if (line.StartsWith("save_bits:"))
+					{
+						bitManager.ShouldSaveBits = bool.Parse(line.Split(' ')[1]);
+					}
 				}
 			}
+			else
+			{
+				GD.Print("Config not found");
+			}
 
-			if (res.Username == null)
-				res.Username = string.Empty;
+			if (bitManager.User.Username == null)
+				bitManager.User.Username = string.Empty;
 
-			return res;
+			if (bitManager.User.OAuth == null)
+				bitManager.User.OAuth = string.Empty;
 		}
 
-		public static void Save(Config config)
+		public static void Save(BitManager bitManager)
 		{
 			string path = Path.Combine(Directory.GetCurrentDirectory(), FILENAME);
 
-			string[] lines = new string[2];
-			lines[0] = "username: " + config.Username;
-			lines[1] = "auto_connect: " + config.AutoConnect;
+			string[] lines = new string[]
+			{
+				string.Format("user: {0};{1}", bitManager.User.Username, bitManager.User.OAuth),
+				"auto_connect: " + bitManager.ShouldAutoConnect,
+				"save_bits: " + bitManager.ShouldSaveBits,
+			};
 
 			File.WriteAllLines(path, lines);
 		}

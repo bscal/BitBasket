@@ -2,12 +2,12 @@
 
 [ext_resource type="Script" path="res://BitManager.cs" id="1_tqyh6"]
 [ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://Bit1.png" id="2_b35ci"]
-[ext_resource type="Texture2D" uid="uid://bogi1skn0ep1v" path="res://bitglass.png" id="2_wget7"]
 [ext_resource type="Texture2D" uid="uid://b6bvtg03wbewf" path="res://Bit100.png" id="3_pskop"]
 [ext_resource type="Texture2D" uid="uid://cke4gvfoyqr7g" path="res://Bit1000.png" id="4_fufxd"]
 [ext_resource type="Texture2D" uid="uid://m1i83fjsrq0e" path="res://Bit5000.png" id="5_fhd8b"]
 [ext_resource type="Script" path="res://UIController.cs" id="5_gk6s4"]
 [ext_resource type="Texture2D" uid="uid://b3mgy2ostyvt7" path="res://Bit10000.png" id="6_wfbga"]
+[ext_resource type="Texture2D" uid="uid://dsg1bwwb7ydxu" path="res://DefaultGlass.png" id="7_3g33y"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_0tfi2"]
 absorbent = true
@@ -45,15 +45,16 @@ physics_material_override = SubResource("PhysicsMaterial_0tfi2")
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D"]
 position = Vector2(143, 42)
 scale = Vector2(14.7554, 13.9774)
-polygon = PackedVector2Array(-6.50609, 28.6176, -7.04827, 21.7494, -8.60702, 1.35934, -7.09486, 1.35872, -4.33739, 23.8242, 1.01658, 24.1103, 6.03169, 23.6095, 8.78915, 1.26814, 10.1658, 1.26814, 8.81033, 23.6811, 8.81033, 28.5461, 0.813263, 28.6176)
+polygon = PackedVector2Array(-7.04827, 29.6192, -7.4549, 21.6779, -8.60702, 0.214632, -7.11604, 0.214632, -4.60848, 24.8258, 0.677719, 25.3981, 5.89615, 24.7542, 8.53925, 0.0715446, 9.96246, 0.0715446, 9.01365, 21.6779, 8.87811, 29.4762, 0.813263, 30.3347)
 
 [node name="Sprite2D" type="Sprite2D" parent="StaticBody2D"]
 z_index = -1
 position = Vector2(154, 246)
 scale = Vector2(1.03567, 0.861591)
-texture = ExtResource("2_wget7")
+texture = ExtResource("7_3g33y")
 
 [node name="ForceArea" type="Area2D" parent="."]
+visible = false
 position = Vector2(745, 476)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea"]
@@ -62,6 +63,7 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceTriggerArea" type="Area2D" parent="."]
+visible = false
 position = Vector2(744, 481)
 gravity_point_center = Vector2(0, 0)
 gravity_direction = Vector2(0, 0)
@@ -72,6 +74,7 @@ position = Vector2(94, 149)
 shape = SubResource("RectangleShape2D_111ms")
 
 [node name="BoundsArea" type="Area2D" parent="."]
+visible = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BoundsArea"]
 visible = false
@@ -82,12 +85,13 @@ shape = SubResource("RectangleShape2D_gwl3m")
 script = ExtResource("5_gk6s4")
 
 [node name="Container2" type="AspectRatioContainer" parent="."]
-anchors_preset = -1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 1453.0
-offset_right = 1603.0
-offset_bottom = 158.0
+offset_left = 1443.0
+offset_top = 8.0
+offset_right = 1593.0
+offset_bottom = 220.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -122,9 +126,15 @@ layout_mode = 2
 [node name="LabelDebugBitsInArea" type="Label" parent="Container2/DebugUI"]
 layout_mode = 2
 
+[node name="ButtonDebugReload" type="Button" parent="Container2/DebugUI"]
+layout_mode = 2
+text = "Reload"
+
 [node name="Container" type="AspectRatioContainer" parent="."]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 185.0
+offset_bottom = 245.0
 
 [node name="UI" type="VBoxContainer" parent="Container"]
 layout_mode = 2
@@ -166,6 +176,10 @@ text = "Auto Connect"
 layout_mode = 2
 text = "Show Debug
 "
+
+[node name="CheckBoxSaveBits" type="CheckBox" parent="Container/UI/Bools"]
+layout_mode = 2
+text = "Save Bits on Close"
 
 [node name="BtnClearBits" type="Button" parent="Container/UI"]
 layout_mode = 2

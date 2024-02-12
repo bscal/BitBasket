@@ -6,7 +6,7 @@
 friction = 0.69
 bounce = 0.6
 
-[node name="Bit" type="RigidBody2D"]
+[node name="Bit" type="RigidBody2D" groups=["Persistent"]]
 mass = 0.16
 physics_material_override = SubResource("PhysicsMaterial_jfva4")
 continuous_cd = 2
