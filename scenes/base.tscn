@@ -1,13 +1,13 @@
 [gd_scene load_steps=14 format=3 uid="uid://c4q1tu7v8d5ha"]
 
-[ext_resource type="Script" path="res://BitManager.cs" id="1_mk7q2"]
+[ext_resource type="Script" path="res://src/BitManager.cs" id="1_mk7q2"]
 [ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://assets/Bit1.png" id="2_cif33"]
 [ext_resource type="Texture2D" uid="uid://b6bvtg03wbewf" path="res://assets/Bit100.png" id="3_avkmv"]
 [ext_resource type="Texture2D" uid="uid://cke4gvfoyqr7g" path="res://assets/Bit1000.png" id="4_a7unt"]
 [ext_resource type="Texture2D" uid="uid://m1i83fjsrq0e" path="res://assets/Bit5000.png" id="5_2jdxv"]
 [ext_resource type="Texture2D" uid="uid://b3mgy2ostyvt7" path="res://assets/Bit10000.png" id="6_2b3dc"]
 [ext_resource type="Texture2D" uid="uid://dsg1bwwb7ydxu" path="res://assets/DefaultGlass.png" id="7_n5p6f"]
-[ext_resource type="Script" path="res://UIController.cs" id="8_fki47"]
+[ext_resource type="Script" path="res://src/UIController.cs" id="8_fki47"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_0tfi2"]
 absorbent = true
