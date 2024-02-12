@@ -146,7 +146,7 @@ public partial class BitManager : Node2D
 
 	public void InitBitPool()
 	{
-		PackedScene bitScene = GD.Load<PackedScene>("res://bit.tscn");
+		PackedScene bitScene = GD.Load<PackedScene>("res://scenes/bit.tscn");
 		if (bitScene == null)
 		{
 			GD.PrintErr(string.Format("Bit node could not be found"));

@@ -1,13 +1,13 @@
 [gd_scene load_steps=14 format=3 uid="uid://c4q1tu7v8d5ha"]
 
-[ext_resource type="Script" path="res://BitManager.cs" id="1_tqyh6"]
-[ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://Bit1.png" id="2_b35ci"]
-[ext_resource type="Texture2D" uid="uid://b6bvtg03wbewf" path="res://Bit100.png" id="3_pskop"]
-[ext_resource type="Texture2D" uid="uid://cke4gvfoyqr7g" path="res://Bit1000.png" id="4_fufxd"]
-[ext_resource type="Texture2D" uid="uid://m1i83fjsrq0e" path="res://Bit5000.png" id="5_fhd8b"]
-[ext_resource type="Script" path="res://UIController.cs" id="5_gk6s4"]
-[ext_resource type="Texture2D" uid="uid://b3mgy2ostyvt7" path="res://Bit10000.png" id="6_wfbga"]
-[ext_resource type="Texture2D" uid="uid://dsg1bwwb7ydxu" path="res://DefaultGlass.png" id="7_3g33y"]
+[ext_resource type="Script" path="res://BitManager.cs" id="1_mk7q2"]
+[ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://assets/Bit1.png" id="2_cif33"]
+[ext_resource type="Texture2D" uid="uid://b6bvtg03wbewf" path="res://assets/Bit100.png" id="3_avkmv"]
+[ext_resource type="Texture2D" uid="uid://cke4gvfoyqr7g" path="res://assets/Bit1000.png" id="4_a7unt"]
+[ext_resource type="Texture2D" uid="uid://m1i83fjsrq0e" path="res://assets/Bit5000.png" id="5_2jdxv"]
+[ext_resource type="Texture2D" uid="uid://b3mgy2ostyvt7" path="res://assets/Bit10000.png" id="6_2b3dc"]
+[ext_resource type="Texture2D" uid="uid://dsg1bwwb7ydxu" path="res://assets/DefaultGlass.png" id="7_n5p6f"]
+[ext_resource type="Script" path="res://UIController.cs" id="8_fki47"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_0tfi2"]
 absorbent = true
@@ -28,12 +28,12 @@ position = Vector2(0, -2)
 
 [node name="BitManager" type="Node2D" parent="."]
 process_priority = -1
-script = ExtResource("1_tqyh6")
-Bit1Texture = ExtResource("2_b35ci")
-Bit100Texture = ExtResource("3_pskop")
-Bit1000Texture = ExtResource("4_fufxd")
-Bit5000Texture = ExtResource("5_fhd8b")
-Bit10000Texture = ExtResource("6_wfbga")
+script = ExtResource("1_mk7q2")
+Bit1Texture = ExtResource("2_cif33")
+Bit100Texture = ExtResource("3_avkmv")
+Bit1000Texture = ExtResource("4_a7unt")
+Bit5000Texture = ExtResource("5_2jdxv")
+Bit10000Texture = ExtResource("6_2b3dc")
 
 [node name="SpawnPosition" type="Node2D" parent="BitManager"]
 position = Vector2(833, -63)
@@ -51,7 +51,7 @@ polygon = PackedVector2Array(-7.04827, 29.6192, -7.4549, 21.6779, -8.60702, 0.21
 z_index = -1
 position = Vector2(154, 246)
 scale = Vector2(1.03567, 0.861591)
-texture = ExtResource("7_3g33y")
+texture = ExtResource("7_n5p6f")
 
 [node name="ForceArea" type="Area2D" parent="."]
 visible = false
@@ -82,16 +82,16 @@ position = Vector2(799, -53.5)
 shape = SubResource("RectangleShape2D_gwl3m")
 
 [node name="UIController" type="Node" parent="."]
-script = ExtResource("5_gk6s4")
+script = ExtResource("8_fki47")
 
 [node name="Container2" type="AspectRatioContainer" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 1443.0
-offset_top = 8.0
+offset_top = 13.0
 offset_right = 1593.0
-offset_bottom = 220.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -153,6 +153,7 @@ theme_override_constants/margin_bottom = 4
 layout_mode = 2
 text = "Status: Not Connected
 "
+horizontal_alignment = 1
 
 [node name="TextChannelName" type="LineEdit" parent="Container/UI"]
 layout_mode = 2
@@ -172,14 +173,14 @@ layout_mode = 2
 layout_mode = 2
 text = "Auto Connect"
 
+[node name="CheckBoxSaveBits" type="CheckBox" parent="Container/UI/Bools"]
+layout_mode = 2
+text = "Save Bits on Close"
+
 [node name="CheckBoxShowDebug" type="CheckBox" parent="Container/UI/Bools"]
 layout_mode = 2
 text = "Show Debug
 "
-
-[node name="CheckBoxSaveBits" type="CheckBox" parent="Container/UI/Bools"]
-layout_mode = 2
-text = "Save Bits on Close"
 
 [node name="BtnClearBits" type="Button" parent="Container/UI"]
 layout_mode = 2
