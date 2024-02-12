@@ -207,6 +207,39 @@ namespace BitCup
 			}
 		}
 
+		public bool ValidateThanFetchOrConnect(User user)
+		{
+			if (string.IsNullOrEmpty(user.Username))
+			{
+				GD.PrintErr("No username");
+				return false;
+			}
+
+			if (string.IsNullOrEmpty(user.OAuth))
+			{
+				GD.Print("NO oAuth");
+				FetchNewOAuth();
+				return false;
+			}
+
+			BitManager.User = user;
+
+			const string URL = "https://id.twitch.tv/oauth2/validate";
+			string[] headers = new string[1];
+			headers[0] = "Authorization: OAuth " + BitManager.User.OAuth;
+
+
+			HttpRequest request = new HttpRequest();
+			BitManager.AddChild(request);
+			request.RequestCompleted += Client_OnRequestCompleted;
+			Error err = request.Request(URL, headers);
+			if (err != Error.Ok)
+			{
+				GD.PushError(err);
+				return false;
+			}
+			return true;
+		}
 
 		private void OAuthSendPageData(StreamPeer peer, string data)
 		{
@@ -225,6 +258,78 @@ namespace BitCup
 			byte[] responseAscii = fullResponse.ToAsciiBuffer();
 			peer.PutData(responseAscii);
 		}
+
+		private void ConnectAndInitClient(User user)
+		{
+			if (string.IsNullOrEmpty(user.Username))
+			{
+				GD.PushError("user.Username is null or empty");
+				return;
+			}
+
+			if (string.IsNullOrEmpty(user.OAuth))
+			{
+				GD.PushError("user.OAuth is null or empty");
+				return;
+			}
+
+			ConnectionCredentials credentials = new ConnectionCredentials(user.Username, user.OAuth);
+
+			var clientOptions = new ClientOptions
+			{
+				MessagesAllowedInPeriod = 750,
+				ThrottlingPeriod = TimeSpan.FromSeconds(30)
+			};
+
+			WebSocketClient customClient = new WebSocketClient(clientOptions);
+			Client = new TwitchClient(customClient);
+			Client.Initialize(credentials, "channel");
+
+			Client.OnConnected += Client_OnConnected;
+			Client.OnMessageReceived += Client_OnMessageReceived;
+			Client.OnError += Client_OnError;
+
+			Client.OnJoinedChannel += Client_OnJoinedChannel;
+
+			if (!Client.Connect())
+			{
+				GD.PrintErr("Could not connect to TwitchAPI");
+			}
+			else
+			{
+				GD.Print("Connected to TwitchAPI");
+				Client.JoinChannel(Client.TwitchUsername);
+			}
+
+			Config.Save(BitManager);
+
+			BitManager.State = State.Running;
+		}
+
+		private void FetchNewOAuth()
+		{
+			GD.Print("Fetching oAuth...");
+			string username = BitManager.User.Username;
+			OAuthServerStart(username);
+		}
+
+		// Not used, would be to get user_id
+		private bool GetUser()
+		{
+			Debug.Assert(!string.IsNullOrEmpty(BitManager.User.OAuth));
+
+			if (string.IsNullOrEmpty(BitManager.User.OAuth))
+			{
+				return false;
+			}
+
+			const string URL = "https://api.twitch.tv/helix/users";
+			string[] headers = new string[1];
+			headers[0] = "Authorization: Bearer " + BitManager.User.OAuth;
+
+			return true;
+		}
+
 
 		private void Client_OnJoinedChannel(object sender, OnJoinedChannelArgs e)
 		{
@@ -265,56 +370,6 @@ namespace BitCup
 					}
 				}
 			}
-		}
-
-		private bool GetUser()
-		{
-			Debug.Assert(!string.IsNullOrEmpty(BitManager.User.OAuth));
-
-			if (string.IsNullOrEmpty(BitManager.User.OAuth))
-			{
-				return false;
-			}
-
-			const string URL = "https://api.twitch.tv/helix/users";
-			string[] headers = new string[1];
-			headers[0] = "Authorization: Bearer " + BitManager.User.OAuth;
-
-			return true;
-		}
-
-		public bool ValidateThanFetchOrConnect(User user)
-		{
-			if (string.IsNullOrEmpty(user.Username))
-			{
-				GD.PrintErr("No username");
-				return false;
-			}
-
-			if (string.IsNullOrEmpty(user.OAuth))
-			{
-				GD.Print("NO oAuth");
-				FetchNewOAuth();
-				return false;
-			}
-
-			BitManager.User = user;
-
-			const string URL = "https://id.twitch.tv/oauth2/validate";
-			string[] headers = new string[1];
-			headers[0] = "Authorization: OAuth " + BitManager.User.OAuth;
-
-
-			HttpRequest request = new HttpRequest();
-			BitManager.AddChild(request);
-			request.RequestCompleted += Client_OnRequestCompleted;
-			Error err = request.Request(URL, headers);
-			if (err != Error.Ok)
-			{
-				GD.PushError(err);
-				return false;
-			}
-			return true;
 		}
 
 		private void Client_OnRequestCompleted(long result, long responseCode, string[] headers, byte[] body)
@@ -372,60 +427,5 @@ namespace BitCup
 				FetchNewOAuth();
 			}
 		}
-
-		private void ConnectAndInitClient(User user)
-		{
-			if (string.IsNullOrEmpty(user.Username))
-			{
-				GD.PushError("user.Username is null or empty");
-				return;
-			}
-
-			if (string.IsNullOrEmpty(user.OAuth))
-			{
-				GD.PushError("user.OAuth is null or empty");
-				return;
-			}
-
-			ConnectionCredentials credentials = new ConnectionCredentials(user.Username, user.OAuth);
-
-			var clientOptions = new ClientOptions
-			{
-				MessagesAllowedInPeriod = 750,
-				ThrottlingPeriod = TimeSpan.FromSeconds(30)
-			};
-
-			WebSocketClient customClient = new WebSocketClient(clientOptions);
-			Client = new TwitchClient(customClient);
-			Client.Initialize(credentials, "channel");
-
-			Client.OnConnected += Client_OnConnected;
-			Client.OnMessageReceived += Client_OnMessageReceived;
-			Client.OnError += Client_OnError;
-
-			Client.OnJoinedChannel += Client_OnJoinedChannel;
-
-			if (!Client.Connect())
-			{
-				GD.PrintErr("Could not connect to TwitchAPI");
-			}
-			else
-			{
-				GD.Print("Connected to TwitchAPI");
-				Client.JoinChannel(Client.TwitchUsername);
-			}
-
-			Config.Save(BitManager);
-
-			BitManager.State = State.Running;
-		}
-
-		private void FetchNewOAuth()
-		{
-			GD.Print("Fetching oAuth...");
-			string username = BitManager.User.Username;
-			OAuthServerStart(username);
-		}
-
 	}
 }

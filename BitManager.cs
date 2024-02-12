@@ -99,7 +99,6 @@ public partial class BitManager : Node2D
 
 	private float Timer;
 
-	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
 		Engine.MaxFps = 60;
@@ -145,31 +144,6 @@ public partial class BitManager : Node2D
 		RemoveSaveFile();
 	}
 
-	private void ForceArea_OnBodyEnter(Node2D body)
-	{
-		if (body is RigidBody2D rb)
-		{
-			++BitCount;
-
-			if ((rb.Mass > BIT_100_MASS - 1 && BitCount >= 24)
-				|| (rb.Mass > BIT_1000_MASS - 1 && BitCount >= 12)
-				|| (rb.Mass > BIT_10000_MASS - 1 && BitCount >= 2))
-			{
-				float upForceAmp = 4.0f;
-				float massAmp = 96.0f;
-				Vector2 force = Vector2.Up * upForceAmp * new Vector2(1.0f, rb.Mass * massAmp);
-
-				foreach (var bit in ForceTriggerArea.GetOverlappingBodies())
-				{
-					if (bit is RigidBody2D bitRB)
-					{
-						bitRB.ApplyImpulse(force);
-					}
-				}
-			}
-		}
-	}
-
 	public void InitBitPool()
 	{
 		PackedScene bitScene = GD.Load<PackedScene>("res://bit.tscn");
@@ -195,11 +169,34 @@ public partial class BitManager : Node2D
 		BitStatesDenseCount = 0;
 	}
 
-	private void ForceArea_OnBodyExited(Node2D body)
+	public override void _Process(double delta)
 	{
-		if (body is RigidBody2D)
+		switch (State)
 		{
-			--BitCount;
+			case (State.PreStart):
+				{
+				}
+				break;
+			case (State.OAuth):
+				{
+					TwitchManager.OAuthServerUpdate();
+				}
+				break;
+			case (State.Running):
+				{
+					Timer += (float)delta;
+					if (Timer > BIT_TIMER)
+					{
+						Timer = 0;
+						if (BitOrders.Count > 0 && BitOrderProcessNext(BitOrders[0]))
+						{
+							BitOrders.Remove(BitOrders[0]);
+						}
+					}
+				}
+				break;
+
+			default: break;
 		}
 	}
 
@@ -221,34 +218,40 @@ public partial class BitManager : Node2D
 		}
 	}
 
-
-	// Called every frame. 'delta' is the elapsed time since the previous frame.
-	public override void _Process(double delta)
+	public void HideBit(int bitId)
 	{
-		switch (State)
-		{
-			case (State.PreStart):
-				{
-				} break;
-			case (State.OAuth):
-				{
-					TwitchManager.OAuthServerUpdate();
-				} break;
-			case (State.Running):
-				{
-					Timer += (float)delta;
-					if (Timer > BIT_TIMER)
-					{
-						Timer = 0;
-						if (BitOrders.Count > 0 && BitOrderProcessNext(BitOrders[0]))
-						{
-							BitOrders.Remove(BitOrders[0]);
-						}
-					}
-				} break;
+		BitPool[bitId].ProcessMode = ProcessModeEnum.Disabled;
+		SpriteCache[bitId].Hide();
+	}
 
-			default: break;
+	public void CreateOrderWithChecks(int amount)
+	{
+		if (amount <= 0)
+			return;
+
+		BitOrder bitOrder = new BitOrder();
+		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (byte)(amount / 10000);
+		amount %= 10000;
+
+		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (byte)(amount / 5000);
+		amount %= 5000;
+
+		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (byte)(amount / 1000);
+		amount %= 1000;
+
+		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (byte)(amount / 100);
+		amount %= 100;
+
+		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (byte)(amount);
+
+		if (BitOrders.Count == BitOrders.Capacity)
+		{
+			GD.PrintErr("Bit orders capacity reached!");
+			BitCup.Debug.Assert(BitOrders.Count < BitOrders.Capacity);
+			return;
 		}
+
+		BitOrders.Add(bitOrder);
 	}
 
 	private void SpawnNode(BitTypes type)
@@ -338,42 +341,6 @@ public partial class BitManager : Node2D
 		return isFinished;
 	}
 
-	public void CreateOrderWithChecks(int amount)
-	{
-		if (amount <= 0)
-			return;
-
-		BitOrder bitOrder = new BitOrder();
-		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (byte)(amount / 10000);
-		amount %= 10000;
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (byte)(amount / 5000);
-		amount %= 5000;
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (byte)(amount / 1000);
-		amount %= 1000;
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (byte)(amount / 100);
-		amount %= 100;
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (byte)(amount);
-
-		if (BitOrders.Count == BitOrders.Capacity)
-		{
-			GD.PrintErr("Bit orders capacity reached!");
-			BitCup.Debug.Assert(BitOrders.Count < BitOrders.Capacity);
-			return;
-		}
-
-		BitOrders.Add(bitOrder);
-	}
-
-	public void HideBit(int bitId)
-	{
-		BitPool[bitId].ProcessMode = ProcessModeEnum.Disabled;
-		SpriteCache[bitId].Hide();
-	}
-
 	private void BoundsArea_OnBodyExited(Node2D body)
 	{
 		if (body is RigidBody2D rb)
@@ -409,6 +376,39 @@ public partial class BitManager : Node2D
 		}
 	}
 
+	private void ForceArea_OnBodyEnter(Node2D body)
+	{
+		if (body is RigidBody2D rb)
+		{
+			++BitCount;
+
+			if ((rb.Mass > BIT_100_MASS - 1 && BitCount >= 24)
+				|| (rb.Mass > BIT_1000_MASS - 1 && BitCount >= 12)
+				|| (rb.Mass > BIT_10000_MASS - 1 && BitCount >= 2))
+			{
+				float upForceAmp = 4.0f;
+				float massAmp = 96.0f;
+				Vector2 force = Vector2.Up * upForceAmp * new Vector2(1.0f, rb.Mass * massAmp);
+
+				foreach (var bit in ForceTriggerArea.GetOverlappingBodies())
+				{
+					if (bit is RigidBody2D bitRB)
+					{
+						bitRB.ApplyImpulse(force);
+					}
+				}
+			}
+		}
+	}
+
+	private void ForceArea_OnBodyExited(Node2D body)
+	{
+		if (body is RigidBody2D)
+		{
+			--BitCount;
+		}
+	}
+
 	private static Godot.Collections.Dictionary<string, Variant> SerializeBit(RigidBody2D node)
 	{
 		return new Godot.Collections.Dictionary<string, Variant>()
@@ -428,7 +428,7 @@ public partial class BitManager : Node2D
 
 	private void RemoveSaveFile()
 	{
-		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Gamestate.save");
+		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 		if (System.IO.File.Exists(savePath))
 		{
 			System.IO.File.Delete(savePath);
@@ -437,7 +437,7 @@ public partial class BitManager : Node2D
 
 	private void SaveBitNodes()
 	{
-		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Gamestate.save");
+		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 
 		using var save = FileAccess.Open(savePath, FileAccess.ModeFlags.Write);
 		var nodes = GetTree().GetNodesInGroup("Persistent");
@@ -468,7 +468,7 @@ public partial class BitManager : Node2D
 
 	private bool LoadBitNodes()
 	{
-		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Gamestate.save");
+		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 
 		if (!FileAccess.FileExists(savePath))
 		{

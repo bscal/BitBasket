@@ -1,3 +1,5 @@
 # Godot 4+ specific ignores
 .godot/
 .vs/
+config.txt
+gamestate.save
