@@ -30,3 +30,7 @@ and load them on next start.
 Here are the dependencies:
 * Godot Engine version 4.2.1.stable.mono
 * TwitchLib 3.5.3 - I guess DotNet or Nuget will install this for you
+
+
+https://github.com/bscal/BitBasket/assets/4869976/1ff944f9-b6f8-4bff-bdc3-83ce1e68d93a
+
