@@ -32,5 +32,4 @@ Here are the dependencies:
 * TwitchLib 3.5.3 - I guess DotNet or Nuget will install this for you
 
 
-https://github.com/bscal/BitBasket/assets/4869976/1ff944f9-b6f8-4bff-bdc3-83ce1e68d93a
-
+<img width=300 height=300 src='https://github.com/bscal/BitBasket/assets/4869976/6a16ab33-c351-42db-a55d-2384adec6696'></img>
