@@ -52,7 +52,7 @@ public partial class BitManager : Node2D
 	public const int VersionMajor = 0;
 	public const int VersionMinor = 1;
 
-	public const int MAX_BITS = 100;
+	public const int MAX_BITS = 256;
 	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
 	public const float BIT_TIMER = 0.25f;
 
