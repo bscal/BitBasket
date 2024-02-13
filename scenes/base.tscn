@@ -19,7 +19,7 @@ size = Vector2(201, 352)
 size = Vector2(199, 249)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gwl3m"]
-size = Vector2(1648, 1951)
+size = Vector2(1648, 2420)
 
 [sub_resource type="Theme" id="Theme_22xiq"]
 
@@ -74,7 +74,7 @@ shape = SubResource("RectangleShape2D_111ms")
 [node name="BoundsArea" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BoundsArea"]
-position = Vector2(799, -53.5)
+position = Vector2(799, -288)
 shape = SubResource("RectangleShape2D_gwl3m")
 
 [node name="UIController" type="Node" parent="."]

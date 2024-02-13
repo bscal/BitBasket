@@ -364,12 +364,20 @@ namespace BitCup
 				GD.Print("BitOrder test!");
 
 				string[] split = e.ChatMessage.Message.Split(" ");
-				if (split[1] == "test" && split.Length == 3)
+				if (split[1] == "test" && split.Length >= 3)
 				{
 					if (int.TryParse(split[2], out int amount))
 					{
 						BitManager.CreateOrderWithChecks(amount);
 					}
+					else
+					{
+						GD.PrintErr("Couldnt parse amount string");
+					}
+				}
+				else
+				{
+					GD.PrintErr("Command invalid, " + e.ChatMessage.Message);
 				}
 			}
 		}

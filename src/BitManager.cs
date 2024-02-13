@@ -56,12 +56,11 @@ public partial class BitManager : Node2D
 	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
 	public const float BIT_TIMER = 0.25f;
 
-	public const float BIT_1_MASS = 1.0f;
+	public const float BIT_1_MASS = 2.0f;
 	public const float BIT_100_MASS = 4.0f;
 	public const float BIT_1000_MASS = 6.0f;
-	public const float BIT_5000_MASS = 12.0f;
-	public const float BIT_10000_MASS = 20.0f;
-
+	public const float BIT_5000_MASS = 8.0f;
+	public const float BIT_10000_MASS = 12.0f;
 
 	[Export]
 	public Texture Bit1Texture;
@@ -227,21 +226,21 @@ public partial class BitManager : Node2D
 	public void CreateOrderWithChecks(int amount)
 	{
 		if (amount <= 0)
-			return;
 
+			return;
 		BitOrder bitOrder = new BitOrder();
 		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (byte)(amount / 10000);
 		amount %= 10000;
 
 		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (byte)(amount / 5000);
 		amount %= 5000;
-
+		
 		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (byte)(amount / 1000);
 		amount %= 1000;
-
+		
 		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (byte)(amount / 100);
 		amount %= 100;
-
+		
 		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (byte)(amount);
 
 		if (BitOrders.Count == BitOrders.Capacity)
@@ -335,6 +334,14 @@ public partial class BitManager : Node2D
 					isFinished = true;
 				}
 
+				// Only do 1 bit per update
+				break;
+			}
+			// This makes sure we dont hang on orders if last
+			// amount is not > 0
+			else if (i == (int)BitTypes.MaxBitTypes - 1)
+			{
+				isFinished = true;
 				break;
 			}
 		}
@@ -392,7 +399,7 @@ public partial class BitManager : Node2D
 				if (rb.Mass >= BIT_5000_MASS - 1)
 					massAmp += 96.0f;
 				if (rb.Mass > BIT_10000_MASS - 1)
-					massAmp += 512.0f;
+					massAmp += 96.0f;
 
 				Vector2 force = Vector2.Up * upForceAmp * new Vector2(1.0f, rb.Mass * massAmp);
 
