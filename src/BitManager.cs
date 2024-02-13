@@ -52,15 +52,15 @@ public partial class BitManager : Node2D
 	public const int VersionMajor = 0;
 	public const int VersionMinor = 1;
 
-	public const int MAX_BITS = 512;
+	public const int MAX_BITS = 100;
 	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
 	public const float BIT_TIMER = 0.25f;
 
 	public const float BIT_1_MASS = 1.0f;
 	public const float BIT_100_MASS = 4.0f;
-	public const float BIT_1000_MASS = 8.0f;
-	public const float BIT_5000_MASS = 16.0f;
-	public const float BIT_10000_MASS = 32.0f;
+	public const float BIT_1000_MASS = 6.0f;
+	public const float BIT_5000_MASS = 12.0f;
+	public const float BIT_10000_MASS = 20.0f;
 
 
 	[Export]
@@ -345,33 +345,33 @@ public partial class BitManager : Node2D
 	{
 		if (body is RigidBody2D rb)
 		{
-			int id = -1;
+			int denseIdx = -1;
 			for (int i = 0; i < BitStatesDenseCount; ++i)
 			{
-				if (rb == BitPool[BitStatesDense[i].Index])
+				if (rb.GetInstanceId() == BitPool[BitStatesDense[i].Index].GetInstanceId())
 				{
-					id = i;
+					denseIdx = i;
 					break;
 				}
 			}
 
-			if (id == -1)
+			if (denseIdx == -1)
 			{
 				GD.PrintErr("Rigidbody not found in active bodies");
 			}
 			else
 			{
-				int idx = BitStatesDense[id].Index;
+				int idx = BitStatesDense[denseIdx].Index;
 				BitState lastBucket = BitStatesDense[BitStatesDenseCount - 1];
 
 				BitStatesSparse[idx] = -1;
-				BitStatesSparse[lastBucket.Index] = id;
+				BitStatesSparse[lastBucket.Index] = denseIdx;
 
-				BitStatesDense[id] = lastBucket;
+				BitStatesDense[denseIdx] = lastBucket;
 
 				--BitStatesDenseCount;
 
-				HideBit(id);
+				HideBit(idx);
 			}
 		}
 	}
@@ -382,12 +382,18 @@ public partial class BitManager : Node2D
 		{
 			++BitCount;
 
-			if ((rb.Mass > BIT_100_MASS - 1 && BitCount >= 24)
-				|| (rb.Mass > BIT_1000_MASS - 1 && BitCount >= 12)
-				|| (rb.Mass > BIT_10000_MASS - 1 && BitCount >= 2))
+			if ((rb.Mass >= BIT_100_MASS - 1 && BitCount >= 24)
+				|| (rb.Mass >= BIT_1000_MASS - 1 && BitCount >= 12)
+				|| (rb.Mass >= BIT_10000_MASS - 1 && BitCount >= 2))
 			{
-				float upForceAmp = 4.0f;
-				float massAmp = 96.0f;
+				float upForceAmp = 2.0f;
+				float massAmp = 128.0f;
+
+				if (rb.Mass >= BIT_5000_MASS - 1)
+					massAmp += 96.0f;
+				if (rb.Mass > BIT_10000_MASS - 1)
+					massAmp += 512.0f;
+
 				Vector2 force = Vector2.Up * upForceAmp * new Vector2(1.0f, rb.Mass * massAmp);
 
 				foreach (var bit in ForceTriggerArea.GetOverlappingBodies())
