@@ -357,7 +357,9 @@ namespace BitCup
 
 				BitManager.CreateOrderWithChecks(bits);
 			}
-			else if (e.ChatMessage.Message.StartsWith("!bb"))
+			else if ((e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Moderator
+				|| e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Broadcaster)
+				&& e.ChatMessage.Message.StartsWith("!bb"))
 			{
 				GD.Print("BitOrder test!");
 
