@@ -10,7 +10,7 @@ also run in the background.
 2. Run the program and look to the top left.
 3. Insert your twitch username
 4. Click "Connect to Channel" button
-5. This will popup Twitch autherization web page
+5. This will popup Twitch authorization web page
 6. That's it
 
 Your authorization and username will save. You may need to reauthorize if the code
