@@ -2,8 +2,8 @@
 ## BitBasket ##
 Program that simulates bits falling into a cup from your Twitch chat.
 
-You can use your broadcast software to scale and crop the app. And the app will
-also run in the background.
+If using obs, you should be able to Game Capture the application, and enable "allow transparency". This also allows you to crop and scale the cup.
+And the app will also run in the background.
 
 ### Running ###
 1. Download latest version from releases.
