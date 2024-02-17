@@ -1,6 +1,7 @@
 using BitCup;
 using Godot;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 public enum State
@@ -25,18 +26,18 @@ public struct BitOrder
 {
 	public byte[] BitAmounts = new byte[(int)BitTypes.MaxBitTypes];
 
-	public BitOrder() {}
+	public BitOrder() { }
 }
 
 public struct BitState
 {
 	public int Index;
-	public bool HasExploded;
+	public bool[] HasExploded;
 
 	public BitState(int index)
 	{
 		Index = index;
-		HasExploded = false;
+		HasExploded = new bool[BitManager.NUM_OF_EXPLOSION_ZONES];
 	}
 }
 
@@ -50,17 +51,19 @@ public struct User
 public partial class BitManager : Node2D
 {
 	public const int VersionMajor = 0;
-	public const int VersionMinor = 1;
+	public const int VersionMinor = 2;
 
 	public const int MAX_BITS = 256;
 	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
 	public const float BIT_TIMER = 0.25f;
 
-	public const float BIT_1_MASS = 2.0f;
+	public const float BIT_1_MASS = 1.0f;
 	public const float BIT_100_MASS = 4.0f;
 	public const float BIT_1000_MASS = 6.0f;
 	public const float BIT_5000_MASS = 8.0f;
-	public const float BIT_10000_MASS = 12.0f;
+	public const float BIT_10000_MASS = 10.0f;
+
+	public const int NUM_OF_EXPLOSION_ZONES = 5;
 
 	[Export]
 	public Texture Bit1Texture;
@@ -73,9 +76,9 @@ public partial class BitManager : Node2D
 	[Export]
 	public Texture Bit10000Texture;
 
-	public Area2D ForceArea;
-	public Area2D ForceTriggerArea;
+	//public AudioStreamPlayer2D AudioPlayer;
 	public Area2D BoundsArea;
+	public Area2D[] ForceArea = new Area2D[NUM_OF_EXPLOSION_ZONES];
 
 	public int CurrentIndex;
 	public RigidBody2D[] BitPool = new RigidBody2D[MAX_BITS];
@@ -120,13 +123,16 @@ public partial class BitManager : Node2D
 			return;
 		}
 
-		ForceArea = GetNode<Area2D>(new NodePath("../ForceArea"));
-		ForceArea.BodyEntered += ForceArea_OnBodyEnter;
-		ForceArea.BodyExited += ForceArea_OnBodyExited;
+		//AudioPlayer = GetNode<AudioStreamPlayer2D>("./AudioStreamPlayer2D");
 
-		ForceTriggerArea = GetNode<Area2D>(new NodePath("../ForceTriggerArea"));
 		BoundsArea = GetNode<Area2D>(new NodePath("../BoundsArea"));
 		BoundsArea.BodyExited += BoundsArea_OnBodyExited;
+
+		for (int i = 0; i < ForceArea.Length; ++i)
+		{
+			ForceArea[i] = GetNode<Area2D>("../ForceArea" + i);
+			ForceArea[i].BodyEntered += ForceArea_OnBodyEntered;
+		}
 
 		SpawnPosition = spawnNode.Position;
 
@@ -234,13 +240,13 @@ public partial class BitManager : Node2D
 
 		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (byte)(amount / 5000);
 		amount %= 5000;
-		
+
 		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (byte)(amount / 1000);
 		amount %= 1000;
-		
+
 		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (byte)(amount / 100);
 		amount %= 100;
-		
+
 		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (byte)(amount);
 
 		if (BitOrders.Count == BitOrders.Capacity)
@@ -256,11 +262,13 @@ public partial class BitManager : Node2D
 	private void SpawnNode(BitTypes type)
 	{
 		int idx;
-				do
-				{
-					idx = CurrentIndex;
-					CurrentIndex = (CurrentIndex + 1) % MAX_BITS;
-				} while (BitStatesSparse[idx] != -1);
+		do
+		{
+			idx = CurrentIndex;
+			CurrentIndex = (CurrentIndex + 1) % MAX_BITS;
+		} while (BitStatesSparse[idx] != -1);
+
+		//AudioPlayer.Play();
 
 		PhysicsServer2D.BodySetState(
 			BitPool[idx].GetRid(),
@@ -277,33 +285,47 @@ public partial class BitManager : Node2D
 
 		BitCup.Debug.Assert(type != BitTypes.MaxBitTypes);
 
+		BitPool[idx].GetNode<CollisionPolygon2D>("./1BitCollision").Disabled = true;
+		BitPool[idx].GetNode<CollisionPolygon2D>("./100BitCollision").Disabled = true;
+		BitPool[idx].GetNode<CollisionPolygon2D>("./1000BitCollision").Disabled = true;
+		BitPool[idx].GetNode<CollisionPolygon2D>("./5000BitCollision").Disabled = true;
+		BitPool[idx].GetNode<CollisionPolygon2D>("./10000BitCollision").Disabled = true;
+
 		switch (type)
 		{
 			case BitTypes.Bit1:
 				{
 					BitPool[idx].Mass = BIT_1_MASS;
+					BitPool[idx].GetNode<CollisionPolygon2D>("./1BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit1Texture;
-				} break;
+				}
+				break;
 			case BitTypes.Bit100:
 				{
 					BitPool[idx].Mass = BIT_100_MASS;
+					BitPool[idx].GetNode<CollisionPolygon2D>("./100BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit100Texture;
-				} break;
+
+				}
+				break;
 			case BitTypes.Bit1000:
 				{
 					BitPool[idx].Mass = BIT_1000_MASS;
+					BitPool[idx].GetNode<CollisionPolygon2D>("./1000BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit1000Texture;
 				}
 				break;
 			case BitTypes.Bit5000:
 				{
 					BitPool[idx].Mass = BIT_5000_MASS;
+					BitPool[idx].GetNode<CollisionPolygon2D>("./5000BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit5000Texture;
 				}
 				break;
 			case BitTypes.Bit10000:
 				{
 					BitPool[idx].Mass = BIT_10000_MASS;
+					BitPool[idx].GetNode<CollisionPolygon2D>("./10000BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit10000Texture;
 				}
 				break;
@@ -383,42 +405,64 @@ public partial class BitManager : Node2D
 		}
 	}
 
-	private void ForceArea_OnBodyEnter(Node2D body)
+	private void ForceArea_OnBodyEntered(Node2D body)
 	{
-		if (body is RigidBody2D rb)
+		if (body is RigidBody2D rb
+			&& rb.Mass >= BIT_100_MASS - .1)
 		{
-			++BitCount;
-
-			if ((rb.Mass >= BIT_100_MASS - 1 && BitCount >= 24)
-				|| (rb.Mass >= BIT_1000_MASS - 1 && BitCount >= 12)
-				|| (rb.Mass >= BIT_10000_MASS - 1 && BitCount >= 2))
+			for (int i = 0; i < BitStatesDenseCount; ++i)
 			{
-				float upForceAmp = 2.0f;
-				float massAmp = 128.0f;
-
-				if (rb.Mass >= BIT_5000_MASS - 1)
-					massAmp += 96.0f;
-				if (rb.Mass > BIT_10000_MASS - 1)
-					massAmp += 96.0f;
-
-				Vector2 force = Vector2.Up * upForceAmp * new Vector2(1.0f, rb.Mass * massAmp);
-
-				foreach (var bit in ForceTriggerArea.GetOverlappingBodies())
+				int idx = BitStatesDense[i].Index;
+				if (BitPool[idx].GetInstanceId() == rb.GetInstanceId())
 				{
-					if (bit is RigidBody2D bitRB)
+					int areaId = 0;
+					foreach (var area in ForceArea)
 					{
-						bitRB.ApplyImpulse(force);
+						if (!BitStatesDense[i].HasExploded[areaId]
+							&& area.OverlapsBody(body))
+						{
+							BitStatesDense[i].HasExploded[areaId] = true;
+
+							float force = 0.0f;
+
+							if (rb.Mass <= BIT_100_MASS + 1)
+								force = 25;
+							else if (rb.Mass <= BIT_1000_MASS + 1)
+								force = 1000;
+							else if (rb.Mass <= BIT_5000_MASS + 1)
+								force = 5000;
+							else
+								force = 10000;
+
+							float upForceAmp = 2.0f;
+							float massAmp = 10.0f;
+
+							//if (rb.Mass >= BIT_1000_MASS - 1)
+							//massAmp += 64.0f;
+							//if (rb.Mass > BIT_10000_MASS - 1)
+							//massAmp += 64.0f;
+
+							Vector2 downVel = Vector2.Up * (rb.LinearVelocity.Y * 1.5f);
+
+							Vector2 impulse = Vector2.Up * force + downVel;
+
+							foreach (var bit in area.GetOverlappingBodies())
+							{
+								if (bit is RigidBody2D bitRB && bit.GetInstanceId() != rb.GetInstanceId())
+								{
+									bitRB.ApplyImpulse(impulse);
+								}
+							}
+
+							rb.ApplyImpulse(Vector2.Down * 16);
+
+							break;
+						}
+						++areaId;
 					}
+					break;
 				}
 			}
-		}
-	}
-
-	private void ForceArea_OnBodyExited(Node2D body)
-	{
-		if (body is RigidBody2D)
-		{
-			--BitCount;
 		}
 	}
 
@@ -453,6 +497,9 @@ public partial class BitManager : Node2D
 		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 
 		using var save = FileAccess.Open(savePath, FileAccess.ModeFlags.Write);
+
+		save.StoreLine(string.Format("Version: {0}.{1}", VersionMajor, VersionMinor));
+
 		var nodes = GetTree().GetNodesInGroup("Persistent");
 		foreach (var saveNode in nodes)
 		{
@@ -511,8 +558,18 @@ public partial class BitManager : Node2D
 		int lineCount = 0;
 		while (saveGame.GetPosition() < saveGame.GetLength())
 		{
-
 			var jsonString = saveGame.GetLine();
+
+			if (lineCount == 0 && jsonString.StartsWith("Version:"))
+			{
+				string[] split = jsonString.Split(' ')[1].Split('.');
+				if (split.Length != 2)
+					return false;
+				if (int.Parse(split[0]) != VersionMajor)
+					return false;
+				if (int.Parse(split[1]) != VersionMinor)
+					return false;
+			}
 
 			// Creates the helper class to interact with JSON
 			var json = new Json();
@@ -541,7 +598,7 @@ public partial class BitManager : Node2D
 			if ((bool)nodeData["IsActive"])
 			{
 				SpriteCache[lineCount].Show();
-				SpriteCache[lineCount].Texture = ResourceLoader.Load<Texture2D>((string)nodeData["Texture"]); 
+				SpriteCache[lineCount].Texture = ResourceLoader.Load<Texture2D>((string)nodeData["Texture"]);
 				newObject.ProcessMode = ProcessModeEnum.Always;
 
 				BitStatesSparse[lineCount] = BitStatesDenseCount;

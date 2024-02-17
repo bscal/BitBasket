@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://cke4gvfoyqr7g" path="res://assets/Bit1000.png" id="4_a7unt"]
 [ext_resource type="Texture2D" uid="uid://m1i83fjsrq0e" path="res://assets/Bit5000.png" id="5_2jdxv"]
 [ext_resource type="Texture2D" uid="uid://b3mgy2ostyvt7" path="res://assets/Bit10000.png" id="6_2b3dc"]
+[ext_resource type="AudioStream" uid="uid://dg5n87aceui0o" path="res://assets/107785__hans__tink.wav" id="7_loypx"]
 [ext_resource type="Texture2D" uid="uid://dsg1bwwb7ydxu" path="res://assets/DefaultGlass.png" id="7_n5p6f"]
 [ext_resource type="Script" path="res://src/UIController.cs" id="8_fki47"]
 
@@ -13,10 +14,7 @@
 absorbent = true
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_mrrwj"]
-size = Vector2(201, 352)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_111ms"]
-size = Vector2(199, 249)
+size = Vector2(229, 129.75)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gwl3m"]
 size = Vector2(1648, 2420)
@@ -38,6 +36,11 @@ Bit10000Texture = ExtResource("6_2b3dc")
 [node name="SpawnPosition" type="Node2D" parent="BitManager"]
 position = Vector2(833, -63)
 
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="BitManager"]
+position = Vector2(835, 0)
+stream = ExtResource("7_loypx")
+volume_db = -11.258
+
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 position = Vector2(682, 390)
 physics_material_override = SubResource("PhysicsMaterial_0tfi2")
@@ -53,25 +56,48 @@ position = Vector2(154, 246)
 scale = Vector2(1.03567, 0.861591)
 texture = ExtResource("7_n5p6f")
 
-[node name="ForceArea" type="Area2D" parent="."]
-position = Vector2(745, 476)
+[node name="ForceArea0" type="Area2D" parent="."]
+position = Vector2(746, 414)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea"]
-position = Vector2(88.5, 138)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea0"]
+position = Vector2(90, 308)
 shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
-[node name="ForceTriggerArea" type="Area2D" parent="."]
-position = Vector2(744, 481)
-gravity_point_center = Vector2(0, 0)
-gravity_direction = Vector2(0, 0)
-gravity = 0.0
+[node name="ForceArea1" type="Area2D" parent="."]
+position = Vector2(740, 352)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ForceTriggerArea"]
-position = Vector2(88.5, 181.5)
-shape = SubResource("RectangleShape2D_111ms")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea1"]
+position = Vector2(90, 295)
+shape = SubResource("RectangleShape2D_mrrwj")
+debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
+
+[node name="ForceArea2" type="Area2D" parent="."]
+position = Vector2(744, 270)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea2"]
+position = Vector2(90, 298)
+shape = SubResource("RectangleShape2D_mrrwj")
+debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
+
+[node name="ForceArea3" type="Area2D" parent="."]
+position = Vector2(746, 217)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea3"]
+position = Vector2(89, 264)
+shape = SubResource("RectangleShape2D_mrrwj")
+debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
+
+[node name="ForceArea4" type="Area2D" parent="."]
+position = Vector2(750, 125)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea4"]
+position = Vector2(89, 263)
+shape = SubResource("RectangleShape2D_mrrwj")
+debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="BoundsArea" type="Area2D" parent="."]
+visible = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BoundsArea"]
 position = Vector2(799, -288)
