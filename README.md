@@ -2,15 +2,15 @@
 ## BitBasket ##
 Program that simulates bits falling into a cup from your Twitch chat.
 
-You can use your broadcast software to scale and crop the app. And the app will
-also run in the background.
+If using obs, you should be able to Game Capture the application, and enable "allow transparency". This also allows you to crop and scale the cup.
+And the app will also run in the background.
 
 ### Running ###
 1. Download latest version from releases.
 2. Run the program and look to the top left.
 3. Insert your twitch username
 4. Click "Connect to Channel" button
-5. This will popup Twitch autherization web page
+5. This will popup Twitch authorization web page
 6. That's it
 
 Your authorization and username will save. You may need to reauthorize if the code
@@ -30,3 +30,6 @@ and load them on next start.
 Here are the dependencies:
 * Godot Engine version 4.2.1.stable.mono
 * TwitchLib 3.5.3 - I guess DotNet or Nuget will install this for you
+
+
+<img width=300 height=300 src='https://github.com/bscal/BitBasket/assets/4869976/6a16ab33-c351-42db-a55d-2384adec6696'></img>
