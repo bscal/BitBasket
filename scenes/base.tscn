@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://c4q1tu7v8d5ha"]
+[gd_scene load_steps=18 format=3 uid="uid://c4q1tu7v8d5ha"]
 
 [ext_resource type="Script" path="res://src/BitManager.cs" id="1_mk7q2"]
 [ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://assets/Bit1.png" id="2_cif33"]
@@ -9,15 +9,23 @@
 [ext_resource type="AudioStream" uid="uid://dg5n87aceui0o" path="res://assets/107785__hans__tink.wav" id="7_loypx"]
 [ext_resource type="Texture2D" uid="uid://dsg1bwwb7ydxu" path="res://assets/DefaultGlass.png" id="7_n5p6f"]
 [ext_resource type="Script" path="res://src/UIController.cs" id="8_fki47"]
+[ext_resource type="Script" path="res://src/ExplosiveArea.cs" id="9_e53da"]
+[ext_resource type="StyleBox" uid="uid://dwriuru6ipx36" path="res://assets/textedit_style.tres" id="10_lsygd"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_0tfi2"]
 absorbent = true
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_mrrwj"]
-size = Vector2(229, 129.75)
+size = Vector2(229, 145.809)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gwl3m"]
-size = Vector2(1648, 2420)
+size = Vector2(1648, 3061)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_elf5u"]
+size = Vector2(254, 536)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ykscl"]
+size = Vector2(1626, 82)
 
 [sub_resource type="Theme" id="Theme_22xiq"]
 
@@ -48,7 +56,7 @@ physics_material_override = SubResource("PhysicsMaterial_0tfi2")
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D"]
 position = Vector2(143, 42)
 scale = Vector2(14.7554, 13.9774)
-polygon = PackedVector2Array(-7.04827, 29.6192, -7.4549, 21.6779, -8.60702, 0.214632, -7.11604, 0.214632, -4.60848, 24.8258, 0.677719, 25.3981, 5.89615, 24.7542, 8.53925, 0.0715446, 9.96246, 0.0715446, 9.01365, 21.6779, 8.87811, 29.4762, 0.813263, 30.3347)
+polygon = PackedVector2Array(-6.9805, 29.4046, -8.06484, 21.7494, -8.60702, 0.214632, -7.11604, 0.214632, -5.42174, 24.8258, 0.677719, 25.3981, 6.70941, 24.7542, 8.53925, 0.0715446, 9.96246, 0.0715446, 9.55582, 22.0356, 8.67479, 29.3331, 0.609947, 30.0485)
 
 [node name="Sprite2D" type="Sprite2D" parent="StaticBody2D"]
 z_index = -1
@@ -57,23 +65,27 @@ scale = Vector2(1.03567, 0.861591)
 texture = ExtResource("7_n5p6f")
 
 [node name="ForceArea0" type="Area2D" parent="."]
-position = Vector2(746, 414)
+position = Vector2(746, 515)
+script = ExtResource("9_e53da")
+AlwaysExplode = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea0"]
-position = Vector2(90, 308)
+position = Vector2(90, 234.809)
 shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea1" type="Area2D" parent="."]
-position = Vector2(740, 352)
+position = Vector2(750, 364)
+script = ExtResource("9_e53da")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea1"]
-position = Vector2(90, 295)
+position = Vector2(90, 266.904)
 shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea2" type="Area2D" parent="."]
-position = Vector2(744, 270)
+position = Vector2(749, 261)
+script = ExtResource("9_e53da")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea2"]
 position = Vector2(90, 298)
@@ -81,7 +93,8 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea3" type="Area2D" parent="."]
-position = Vector2(746, 217)
+position = Vector2(749, 198)
+script = ExtResource("9_e53da")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea3"]
 position = Vector2(89, 264)
@@ -89,19 +102,33 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea4" type="Area2D" parent="."]
-position = Vector2(750, 125)
+position = Vector2(747, 11)
+script = ExtResource("9_e53da")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea4"]
-position = Vector2(89, 263)
+position = Vector2(89, 356.719)
 shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="BoundsArea" type="Area2D" parent="."]
-visible = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BoundsArea"]
-position = Vector2(799, -288)
+position = Vector2(799, -608.5)
 shape = SubResource("RectangleShape2D_gwl3m")
+
+[node name="CupArea" type="Area2D" parent="."]
+position = Vector2(715, 321)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CupArea"]
+position = Vector2(120, 258)
+shape = SubResource("RectangleShape2D_elf5u")
+
+[node name="BoundsTop" type="StaticBody2D" parent="."]
+position = Vector2(0, -2134)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BoundsTop"]
+position = Vector2(799, 31)
+shape = SubResource("RectangleShape2D_ykscl")
 
 [node name="UIController" type="Node" parent="."]
 script = ExtResource("8_fki47")
@@ -179,6 +206,8 @@ horizontal_alignment = 1
 
 [node name="TextChannelName" type="LineEdit" parent="Container/UI"]
 layout_mode = 2
+theme_override_styles/normal = ExtResource("10_lsygd")
+theme_override_styles/focus = ExtResource("10_lsygd")
 placeholder_text = "channel name"
 alignment = 1
 

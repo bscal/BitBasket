@@ -32,12 +32,12 @@ public struct BitOrder
 public struct BitState
 {
 	public int Index;
-	public bool[] HasExploded;
+	public bool HasExploded;
 
 	public BitState(int index)
 	{
 		Index = index;
-		HasExploded = new bool[BitManager.NUM_OF_EXPLOSION_ZONES];
+		HasExploded = false;
 	}
 }
 
@@ -63,7 +63,7 @@ public partial class BitManager : Node2D
 	public const float BIT_5000_MASS = 8.0f;
 	public const float BIT_10000_MASS = 10.0f;
 
-	public const int NUM_OF_EXPLOSION_ZONES = 5;
+	//public const int NUM_OF_EXPLOSION_ZONES = 5;
 
 	[Export]
 	public Texture Bit1Texture;
@@ -78,7 +78,7 @@ public partial class BitManager : Node2D
 
 	//public AudioStreamPlayer2D AudioPlayer;
 	public Area2D BoundsArea;
-	public Area2D[] ForceArea = new Area2D[NUM_OF_EXPLOSION_ZONES];
+	public Area2D CupArea;
 
 	public int CurrentIndex;
 	public RigidBody2D[] BitPool = new RigidBody2D[MAX_BITS];
@@ -125,14 +125,10 @@ public partial class BitManager : Node2D
 
 		//AudioPlayer = GetNode<AudioStreamPlayer2D>("./AudioStreamPlayer2D");
 
-		BoundsArea = GetNode<Area2D>(new NodePath("../BoundsArea"));
+		BoundsArea = GetNode<Area2D>(("../BoundsArea"));
 		BoundsArea.BodyExited += BoundsArea_OnBodyExited;
 
-		for (int i = 0; i < ForceArea.Length; ++i)
-		{
-			ForceArea[i] = GetNode<Area2D>("../ForceArea" + i);
-			ForceArea[i].BodyEntered += ForceArea_OnBodyEntered;
-		}
+		CupArea = GetNode<Area2D>("../CupArea");
 
 		SpawnPosition = spawnNode.Position;
 
@@ -405,82 +401,69 @@ public partial class BitManager : Node2D
 		}
 	}
 
-	private void ForceArea_OnBodyEntered(Node2D body)
+	internal void Explode(RigidBody2D rb)
 	{
-		if (body is RigidBody2D rb
-			&& rb.Mass >= BIT_100_MASS - .1)
+		if (rb.Mass >= BIT_100_MASS - .1)
 		{
 			for (int i = 0; i < BitStatesDenseCount; ++i)
 			{
 				int idx = BitStatesDense[i].Index;
 				if (BitPool[idx].GetInstanceId() == rb.GetInstanceId())
 				{
-					int areaId = 0;
-					foreach (var area in ForceArea)
+					if (!BitStatesDense[i].HasExploded)
 					{
-						if (!BitStatesDense[i].HasExploded[areaId]
-							&& area.OverlapsBody(body))
+						BitStatesDense[i].HasExploded = true;
+
+						float force;
+						if (rb.Mass <= BIT_100_MASS + 1)
+							force = 200;
+						else if (rb.Mass <= BIT_1000_MASS + 1)
+							force = 4000;
+						else if (rb.Mass <= BIT_5000_MASS + 1)
+							force = 10000;
+						else
+							force = 20000;
+
+						Vector2 velocityForce = Vector2.Up * (rb.LinearVelocity.Y * 2.0f);
+						Vector2 impulse = Vector2.Up * force + velocityForce;
+
+						foreach (var bit in CupArea.GetOverlappingBodies())
 						{
-							BitStatesDense[i].HasExploded[areaId] = true;
-
-							float force = 0.0f;
-
-							if (rb.Mass <= BIT_100_MASS + 1)
-								force = 25;
-							else if (rb.Mass <= BIT_1000_MASS + 1)
-								force = 1000;
-							else if (rb.Mass <= BIT_5000_MASS + 1)
-								force = 5000;
-							else
-								force = 10000;
-
-							float upForceAmp = 2.0f;
-							float massAmp = 10.0f;
-
-							//if (rb.Mass >= BIT_1000_MASS - 1)
-							//massAmp += 64.0f;
-							//if (rb.Mass > BIT_10000_MASS - 1)
-							//massAmp += 64.0f;
-
-							Vector2 downVel = Vector2.Up * (rb.LinearVelocity.Y * 1.5f);
-
-							Vector2 impulse = Vector2.Up * force + downVel;
-
-							foreach (var bit in area.GetOverlappingBodies())
+							if (bit is RigidBody2D bitRB
+								&& bit.GetInstanceId() != rb.GetInstanceId()
+								&& bitRB.LinearVelocity.Length() < 80)
 							{
-								if (bit is RigidBody2D bitRB && bit.GetInstanceId() != rb.GetInstanceId())
-								{
-									bitRB.ApplyImpulse(impulse);
-								}
+								bitRB.ApplyImpulse(impulse);
 							}
-
-							rb.ApplyImpulse(Vector2.Down * 16);
-
-							break;
 						}
-						++areaId;
+
+						rb.ApplyImpulse(Vector2.Down * 100);
+
+						break;
 					}
-					break;
 				}
 			}
 		}
 	}
 
-	private static Godot.Collections.Dictionary<string, Variant> SerializeBit(RigidBody2D node)
+	private Godot.Collections.Dictionary<string, Variant> SerializeBit(int index, RigidBody2D node)
 	{
-		return new Godot.Collections.Dictionary<string, Variant>()
-		{
-			{ "Filename", node.SceneFilePath },
-			{ "Parent", node.GetParent().GetPath() },
-			{ "PosX", node.Position.X },
-			{ "PosY", node.Position.Y },
-			{ "LVelX", node.LinearVelocity.X },
-			{ "LVelY", node.LinearVelocity.Y },
-			{ "AVel", node.AngularVelocity },
-			{ "IsActive", node.ProcessMode == ProcessModeEnum.Always },
-			{ "Texture", node.GetNode<Sprite2D>(new NodePath("./Sprite2D")).Texture.ResourcePath },
-			{ "Mass", node.Mass }
-		};
+		var dict = new Godot.Collections.Dictionary<string, Variant>();
+		dict.Add("Filename", node.SceneFilePath);
+		dict.Add("Parent", node.GetParent().GetPath());
+		dict.Add("PosX", node.Position.X);
+		dict.Add("PosY", node.Position.Y);
+		dict.Add("LVelX", node.LinearVelocity.X);
+		dict.Add("LVelY", node.LinearVelocity.Y);
+		dict.Add("AVel", node.AngularVelocity);
+		dict.Add("IsActive", node.ProcessMode == ProcessModeEnum.Always);
+		dict.Add("Mass", node.Mass);
+		dict.Add("Texture", SpriteCache[index].Texture.ResourcePath);
+
+		int denseIdx = BitStatesSparse[index];
+		dict.Add("HasExploded", BitStatesDense[denseIdx].HasExploded);
+
+		return dict;
 	}
 
 	private void RemoveSaveFile()
@@ -500,13 +483,9 @@ public partial class BitManager : Node2D
 
 		save.StoreLine(string.Format("Version: {0}.{1}", VersionMajor, VersionMinor));
 
-		var nodes = GetTree().GetNodesInGroup("Persistent");
-		foreach (var saveNode in nodes)
+		for (int i = 0; i < MAX_BITS; ++i)
 		{
-			if (saveNode is not RigidBody2D)
-			{
-				continue;
-			}
+			RigidBody2D saveNode = BitPool[i];
 
 			// Check the node is an instanced scene so it can be instanced again during load.
 			if (string.IsNullOrEmpty(saveNode.SceneFilePath))
@@ -516,10 +495,10 @@ public partial class BitManager : Node2D
 			}
 
 			// Call the node's save function.
-			var nodeData = SerializeBit((RigidBody2D)saveNode);
+			var nodeData = SerializeBit(i, saveNode);
 
 			// Json provides a static method to serialized JSON string.
-			var jsonString = Json.Stringify(nodeData);
+			string jsonString = Json.Stringify(nodeData);
 
 			// Store the save dictionary as a new line in the save file.
 			save.StoreLine(jsonString);
@@ -602,7 +581,11 @@ public partial class BitManager : Node2D
 				newObject.ProcessMode = ProcessModeEnum.Always;
 
 				BitStatesSparse[lineCount] = BitStatesDenseCount;
-				BitStatesDense[BitStatesDenseCount] = new BitState(lineCount);
+
+				BitState state = new BitState(lineCount);
+				state.HasExploded = (bool)nodeData["HasExploded"];
+				BitStatesDense[BitStatesDenseCount] = state;
+
 				++BitStatesDenseCount;
 			}
 			else

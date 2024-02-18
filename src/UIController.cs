@@ -114,10 +114,13 @@ public partial class UIController : Node
 
 		TextChannelName = GetNode<LineEdit>(new NodePath(UI_URL + "TextChannelName"));
 		Debug.Assert(TextChannelName != null);
+		TextChannelName.TextChanged += TextChannelName_OnTextChanged;
 		if (!string.IsNullOrEmpty(BitManager.User.Username))
 		{
-			TextChannelName.Text = BitManager.User.Username; 
+			TextChannelName.Text = BitManager.User.Username;
 		}
+		// Note: Make sure color updates at startup
+		TextChannelName_OnTextChanged(TextChannelName.Text);
 
 		BtnConnectToChannel = GetNode<Button>(new NodePath(UI_URL + "BtnConnectToChannel"));
 		Debug.Assert(BtnConnectToChannel != null);
@@ -202,6 +205,26 @@ public partial class UIController : Node
 			LabelDebugChannel.Text = string.Format("Channel: {0}", connectedChannel);
 
 			LabelDebugBitsInArea.Text = string.Format("BitsInCup: {0}", BitManager.BitCount);
+		}
+	}
+
+	private void TextChannelName_OnTextChanged(string newText)
+	{
+		StyleBox style = TextChannelName.GetThemeStylebox("normal");
+		Debug.Assert(style != null);
+		if (style is StyleBoxFlat styleFlat)
+		{
+			if (string.IsNullOrEmpty(newText)
+				|| (BitManager.TwitchManager != null
+				&& BitManager.TwitchManager.Client != null
+				&& BitManager.TwitchManager.Client.TwitchUsername != newText))
+			{
+				styleFlat.BorderColor = Colors.Red;
+			}
+			else
+			{
+				styleFlat.BorderColor = Colors.Green;
+			}
 		}
 	}
 }
