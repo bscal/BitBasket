@@ -141,8 +141,6 @@ public partial class BitManager : Node2D
 		{
 			InitBitPool();
 		}
-
-		RemoveSaveFile();
 	}
 
 	public void InitBitPool()
@@ -416,9 +414,9 @@ public partial class BitManager : Node2D
 
 						float force;
 						if (rb.Mass <= BIT_100_MASS + 1)
-							force = 200;
+							force = 225;
 						else if (rb.Mass <= BIT_1000_MASS + 1)
-							force = 4000;
+							force = 5000;
 						else if (rb.Mass <= BIT_5000_MASS + 1)
 							force = 10000;
 						else
@@ -449,19 +447,20 @@ public partial class BitManager : Node2D
 	private Godot.Collections.Dictionary<string, Variant> SerializeBit(int index, RigidBody2D node)
 	{
 		var dict = new Godot.Collections.Dictionary<string, Variant>();
+
 		dict.Add("Filename", node.SceneFilePath);
 		dict.Add("Parent", node.GetParent().GetPath());
-		dict.Add("PosX", node.Position.X);
-		dict.Add("PosY", node.Position.Y);
-		dict.Add("LVelX", node.LinearVelocity.X);
-		dict.Add("LVelY", node.LinearVelocity.Y);
-		dict.Add("AVel", node.AngularVelocity);
+		dict.Add("PosX", (int)node.Position.X);
+		dict.Add("PosY", (int)node.Position.Y);
+		dict.Add("LVelX", (int)node.LinearVelocity.X);
+		dict.Add("LVelY", (int)node.LinearVelocity.Y);
+		dict.Add("AVel", (int)node.AngularVelocity);
 		dict.Add("IsActive", node.ProcessMode == ProcessModeEnum.Always);
 		dict.Add("Mass", node.Mass);
 		dict.Add("Texture", SpriteCache[index].Texture.ResourcePath);
 
 		int denseIdx = BitStatesSparse[index];
-		dict.Add("HasExploded", BitStatesDense[denseIdx].HasExploded);
+		dict.Add("HasExploded", (denseIdx == -1) ? false : BitStatesDense[denseIdx].HasExploded);
 
 		return dict;
 	}
@@ -477,6 +476,8 @@ public partial class BitManager : Node2D
 
 	private void SaveBitNodes()
 	{
+		RemoveSaveFile();
+
 		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 
 		using var save = FileAccess.Open(savePath, FileAccess.ModeFlags.Write);
@@ -500,6 +501,7 @@ public partial class BitManager : Node2D
 			// Json provides a static method to serialized JSON string.
 			string jsonString = Json.Stringify(nodeData);
 
+
 			// Store the save dictionary as a new line in the save file.
 			save.StoreLine(jsonString);
 		}
@@ -511,6 +513,7 @@ public partial class BitManager : Node2D
 
 		if (!FileAccess.FileExists(savePath))
 		{
+			GD.PrintErr("Save file doesnt exist");
 			return false; // Error! We don't have a save to load.
 		}
 
@@ -539,15 +542,39 @@ public partial class BitManager : Node2D
 		{
 			var jsonString = saveGame.GetLine();
 
-			if (lineCount == 0 && jsonString.StartsWith("Version:"))
+			if (string.IsNullOrEmpty(jsonString))
+				continue;
+
+			if (lineCount == 0)
 			{
-				string[] split = jsonString.Split(' ')[1].Split('.');
-				if (split.Length != 2)
+				++lineCount;
+				if (jsonString.StartsWith("Version"))
+				{
+					string[] split = jsonString.Split(' ')[1].Split('.');
+
+					if (split.Length != 2)
+					{
+						GD.PrintErr("Invalid split");
+						return false;
+					}
+					if (int.Parse(split[0]) != VersionMajor)
+					{
+						GD.PrintErr("Major version mismatch");
+						return false;
+					}
+					if (int.Parse(split[1]) != VersionMinor)
+					{
+						GD.PrintErr("Minor version mismatch");
+						return false;
+					}
+
+					continue;
+				}
+				else
+				{
+					GD.PrintErr("First line doesnt equal version");
 					return false;
-				if (int.Parse(split[0]) != VersionMajor)
-					return false;
-				if (int.Parse(split[1]) != VersionMinor)
-					return false;
+				}
 			}
 
 			// Creates the helper class to interact with JSON
@@ -566,23 +593,25 @@ public partial class BitManager : Node2D
 			var newObjectScene = GD.Load<PackedScene>(nodeData["Filename"].ToString());
 			var newObject = newObjectScene.Instantiate<RigidBody2D>();
 			GetNode(nodeData["Parent"].ToString()).AddChild(newObject);
-			newObject.Set(Node2D.PropertyName.Position, new Vector2((float)nodeData["PosX"], (float)nodeData["PosY"]));
-			newObject.Set(RigidBody2D.PropertyName.LinearVelocity, new Vector2((float)nodeData["LVelX"], (float)nodeData["LVelY"]));
-			newObject.Set(RigidBody2D.PropertyName.AngularVelocity, (float)nodeData["AVel"]);
+			newObject.Set(Node2D.PropertyName.Position, new Vector2((int)nodeData["PosX"], (int)nodeData["PosY"]));
+			newObject.Set(RigidBody2D.PropertyName.LinearVelocity, new Vector2(0.0f, 0.0f));
+			newObject.Set(RigidBody2D.PropertyName.AngularVelocity, 0.0f);
 			newObject.Set(RigidBody2D.PropertyName.Mass, (float)nodeData["Mass"]);
 
-			BitPool[lineCount] = newObject;
-			SpriteCache[lineCount] = newObject.GetNode<Sprite2D>(new NodePath("./Sprite2D"));
+			int idx = lineCount - 1;
+
+			BitPool[idx] = newObject;
+			SpriteCache[idx] = newObject.GetNode<Sprite2D>(new NodePath("./Sprite2D"));
 
 			if ((bool)nodeData["IsActive"])
 			{
-				SpriteCache[lineCount].Show();
-				SpriteCache[lineCount].Texture = ResourceLoader.Load<Texture2D>((string)nodeData["Texture"]);
+				SpriteCache[idx].Show();
+				SpriteCache[idx].Texture = ResourceLoader.Load<Texture2D>((string)nodeData["Texture"]);
 				newObject.ProcessMode = ProcessModeEnum.Always;
 
-				BitStatesSparse[lineCount] = BitStatesDenseCount;
+				BitStatesSparse[idx] = BitStatesDenseCount;
 
-				BitState state = new BitState(lineCount);
+				BitState state = new BitState(idx);
 				state.HasExploded = (bool)nodeData["HasExploded"];
 				BitStatesDense[BitStatesDenseCount] = state;
 
@@ -590,9 +619,9 @@ public partial class BitManager : Node2D
 			}
 			else
 			{
-				SpriteCache[lineCount].Hide();
+				SpriteCache[idx].Hide();
 				newObject.ProcessMode = ProcessModeEnum.Disabled;
-				BitStatesSparse[lineCount] = -1;
+				BitStatesSparse[idx] = -1;
 			}
 
 			++lineCount;
