@@ -4,8 +4,8 @@ using System;
 
 public partial class ExplosiveArea : Area2D
 {
-	public const float SPD_THRESHOLD = 80;
-	public const int BIT_THRESHOLD = 16;
+	public const float SPD_THRESHOLD = 50;
+	public const int BIT_THRESHOLD = 10;
 
 	[Export]
 	public bool AlwaysExplode;

@@ -33,11 +33,13 @@ public struct BitState
 {
 	public int Index;
 	public bool HasExploded;
+	public BitTypes Type;
 
-	public BitState(int index)
+	public BitState(int index, BitTypes type)
 	{
 		Index = index;
 		HasExploded = false;
+		Type = type;
 	}
 }
 
@@ -221,6 +223,7 @@ public partial class BitManager : Node2D
 	{
 		BitPool[bitId].ProcessMode = ProcessModeEnum.Disabled;
 		SpriteCache[bitId].Hide();
+		BitPool[bitId].Position = SpawnPosition;
 	}
 
 	public void CreateOrderWithChecks(int amount)
@@ -253,7 +256,7 @@ public partial class BitManager : Node2D
 		BitOrders.Add(bitOrder);
 	}
 
-	private void SpawnNode(BitTypes type)
+	private int SpawnNode(BitTypes type, Vector2 spawnPos)
 	{
 		int idx;
 		do
@@ -264,10 +267,12 @@ public partial class BitManager : Node2D
 
 		//AudioPlayer.Play();
 
+		BitPool[idx].Position = spawnPos;
+
 		PhysicsServer2D.BodySetState(
 			BitPool[idx].GetRid(),
 			PhysicsServer2D.BodyState.Transform,
-			Transform2D.Identity.Translated(SpawnPosition));
+			Transform2D.Identity.Translated(spawnPos));
 
 		PhysicsServer2D.BodySetState(
 			BitPool[idx].GetRid(),
@@ -299,7 +304,6 @@ public partial class BitManager : Node2D
 					BitPool[idx].Mass = BIT_100_MASS;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./100BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit100Texture;
-
 				}
 				break;
 			case BitTypes.Bit1000:
@@ -330,8 +334,10 @@ public partial class BitManager : Node2D
 		SpriteCache[idx].Show();
 
 		BitStatesSparse[idx] = BitStatesDenseCount;
-		BitStatesDense[BitStatesDenseCount] = new BitState(idx);
+		BitStatesDense[BitStatesDenseCount] = new BitState(idx, type);
 		++BitStatesDenseCount;
+
+		return BitStatesSparse[idx];
 	}
 
 	private bool BitOrderProcessNext(BitOrder order)
@@ -342,7 +348,7 @@ public partial class BitManager : Node2D
 			if (order.BitAmounts[i] > 0)
 			{
 				--order.BitAmounts[i];
-				SpawnNode((BitTypes)i);
+				SpawnNode((BitTypes)i, SpawnPosition);
 
 				// If last bit type to check and 0
 				if (i == (int)BitTypes.MaxBitTypes - 1 && order.BitAmounts[i] == 0)
@@ -414,9 +420,9 @@ public partial class BitManager : Node2D
 
 						float force;
 						if (rb.Mass <= BIT_100_MASS + 1)
-							force = 225;
+							force = 300;
 						else if (rb.Mass <= BIT_1000_MASS + 1)
-							force = 5000;
+							force = 5500;
 						else if (rb.Mass <= BIT_5000_MASS + 1)
 							force = 10000;
 						else
@@ -448,19 +454,15 @@ public partial class BitManager : Node2D
 	{
 		var dict = new Godot.Collections.Dictionary<string, Variant>();
 
-		dict.Add("Filename", node.SceneFilePath);
-		dict.Add("Parent", node.GetParent().GetPath());
-		dict.Add("PosX", (int)node.Position.X);
-		dict.Add("PosY", (int)node.Position.Y);
-		dict.Add("LVelX", (int)node.LinearVelocity.X);
-		dict.Add("LVelY", (int)node.LinearVelocity.Y);
-		dict.Add("AVel", (int)node.AngularVelocity);
+		dict.Add("MajorVer", VersionMajor);
+		dict.Add("MinorVer", VersionMinor);
+		dict.Add("PosX", Mathf.Floor(node.Position.X));
+		dict.Add("PosY", Mathf.Floor(node.Position.Y));
 		dict.Add("IsActive", node.ProcessMode == ProcessModeEnum.Always);
-		dict.Add("Mass", node.Mass);
-		dict.Add("Texture", SpriteCache[index].Texture.ResourcePath);
 
 		int denseIdx = BitStatesSparse[index];
 		dict.Add("HasExploded", (denseIdx == -1) ? false : BitStatesDense[denseIdx].HasExploded);
+		dict.Add("BitType", (denseIdx == -1) ? 0 : (int)BitStatesDense[denseIdx].Type);
 
 		return dict;
 	}
@@ -481,9 +483,6 @@ public partial class BitManager : Node2D
 		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 
 		using var save = FileAccess.Open(savePath, FileAccess.ModeFlags.Write);
-
-		save.StoreLine(string.Format("Version: {0}.{1}", VersionMajor, VersionMinor));
-
 		for (int i = 0; i < MAX_BITS; ++i)
 		{
 			RigidBody2D saveNode = BitPool[i];
@@ -501,7 +500,6 @@ public partial class BitManager : Node2D
 			// Json provides a static method to serialized JSON string.
 			string jsonString = Json.Stringify(nodeData);
 
-
 			// Store the save dictionary as a new line in the save file.
 			save.StoreLine(jsonString);
 		}
@@ -509,6 +507,8 @@ public partial class BitManager : Node2D
 
 	private bool LoadBitNodes()
 	{
+		InitBitPool();
+
 		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 
 		if (!FileAccess.FileExists(savePath))
@@ -521,11 +521,11 @@ public partial class BitManager : Node2D
 		// This will vary wildly depending on the needs of a project, so take care with
 		// this step.
 		// For our example, we will accomplish this by deleting saveable objects.
-		var saveNodes = GetTree().GetNodesInGroup("Persistent");
-		foreach (Node saveNode in saveNodes)
-		{
-			saveNode.QueueFree();
-		}
+		//var saveNodes = GetTree().GetNodesInGroup("Persistent");
+		//foreach (Node saveNode in saveNodes)
+		//{
+		//	saveNode.QueueFree();
+		//}
 
 		// Load the file line by line and process that dictionary to restore the object
 		// it represents.
@@ -542,41 +542,6 @@ public partial class BitManager : Node2D
 		{
 			var jsonString = saveGame.GetLine();
 
-			if (string.IsNullOrEmpty(jsonString))
-				continue;
-
-			if (lineCount == 0)
-			{
-				++lineCount;
-				if (jsonString.StartsWith("Version"))
-				{
-					string[] split = jsonString.Split(' ')[1].Split('.');
-
-					if (split.Length != 2)
-					{
-						GD.PrintErr("Invalid split");
-						return false;
-					}
-					if (int.Parse(split[0]) != VersionMajor)
-					{
-						GD.PrintErr("Major version mismatch");
-						return false;
-					}
-					if (int.Parse(split[1]) != VersionMinor)
-					{
-						GD.PrintErr("Minor version mismatch");
-						return false;
-					}
-
-					continue;
-				}
-				else
-				{
-					GD.PrintErr("First line doesnt equal version");
-					return false;
-				}
-			}
-
 			// Creates the helper class to interact with JSON
 			var json = new Json();
 			var parseResult = json.Parse(jsonString);
@@ -589,39 +554,22 @@ public partial class BitManager : Node2D
 			// Get the data from the JSON object
 			var nodeData = new Godot.Collections.Dictionary<string, Variant>((Godot.Collections.Dictionary)json.Data);
 
-			// Firstly, we need to create the object and add it to the tree and set its position.
-			var newObjectScene = GD.Load<PackedScene>(nodeData["Filename"].ToString());
-			var newObject = newObjectScene.Instantiate<RigidBody2D>();
-			GetNode(nodeData["Parent"].ToString()).AddChild(newObject);
-			newObject.Set(Node2D.PropertyName.Position, new Vector2((int)nodeData["PosX"], (int)nodeData["PosY"]));
-			newObject.Set(RigidBody2D.PropertyName.LinearVelocity, new Vector2(0.0f, 0.0f));
-			newObject.Set(RigidBody2D.PropertyName.AngularVelocity, 0.0f);
-			newObject.Set(RigidBody2D.PropertyName.Mass, (float)nodeData["Mass"]);
+			if ((int)nodeData["MajorVer"] != VersionMajor
+				|| (int)nodeData["MinorVer"] != VersionMinor)
+			{
+				GD.PrintErr(string.Format("Version mismatch. Saved: {0}.{1}, Expected: {2}.{3}",
+					(int)nodeData["MajorVer"], (int)nodeData["MinorVer"], VersionMajor, VersionMinor));
 
-			int idx = lineCount - 1;
-
-			BitPool[idx] = newObject;
-			SpriteCache[idx] = newObject.GetNode<Sprite2D>(new NodePath("./Sprite2D"));
+				return false;
+			}
 
 			if ((bool)nodeData["IsActive"])
 			{
-				SpriteCache[idx].Show();
-				SpriteCache[idx].Texture = ResourceLoader.Load<Texture2D>((string)nodeData["Texture"]);
-				newObject.ProcessMode = ProcessModeEnum.Always;
+				BitTypes type = (BitTypes)((int)nodeData["BitType"]);
+				Vector2 pos = new Vector2((float)nodeData["PosX"], (float)nodeData["PosY"]);
+				int denseIdx = SpawnNode(type, pos);
 
-				BitStatesSparse[idx] = BitStatesDenseCount;
-
-				BitState state = new BitState(idx);
-				state.HasExploded = (bool)nodeData["HasExploded"];
-				BitStatesDense[BitStatesDenseCount] = state;
-
-				++BitStatesDenseCount;
-			}
-			else
-			{
-				SpriteCache[idx].Hide();
-				newObject.ProcessMode = ProcessModeEnum.Disabled;
-				BitStatesSparse[idx] = -1;
+				BitStatesDense[denseIdx].HasExploded = (bool)nodeData["HasExploded"];
 			}
 
 			++lineCount;
