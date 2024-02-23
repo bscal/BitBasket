@@ -1,0 +1,12 @@
+var float DropDelay = 0.15000000596046448
+var float VelocityAmp = 1.5
+var float Force1 = 0
+var float Force100 = 100
+var float Force1000 = 5000
+var float Force5000 = 10000
+var float Force10000 = 20000
+var float Mass1 = 1
+var float Mass100 = 4
+var float Mass1000 = 6
+var float Mass5000 = 8
+var float Mass10000 = 10

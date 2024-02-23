@@ -23,5 +23,25 @@ namespace BitCup
 #endif
 		}
 
+		public static void LogInfo(string msg, params object[] args)
+		{
+			GD.PrintRaw("[ Info ] ");
+			GD.Print(string.Format(msg, args));
+		}
+
+		public static void LogDebug(string msg, params object[] args)
+		{
+#if DEBUG
+			GD.PrintRaw("[ Debug ] ");
+			GD.Print(string.Format(msg, args));
+#endif
+		}
+
+		public static void LogErr(string msg, params object[] args)
+		{
+			GD.PrintRaw("[ Error ] ");
+			GD.Print(string.Format(msg, args));
+		}
+
 	}
 }

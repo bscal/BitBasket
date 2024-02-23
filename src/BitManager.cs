@@ -1,7 +1,6 @@
 using BitCup;
 using Godot;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 public enum State
@@ -55,17 +54,9 @@ public partial class BitManager : Node2D
 	public const int VersionMajor = 0;
 	public const int VersionMinor = 2;
 
+	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
+
 	public const int MAX_BITS = 256;
-	public const int BIT_TIMEOUT = 60 * 60 * 5 / 10;
-	public const float BIT_TIMER = 0.25f;
-
-	public const float BIT_1_MASS = 1.0f;
-	public const float BIT_100_MASS = 4.0f;
-	public const float BIT_1000_MASS = 6.0f;
-	public const float BIT_5000_MASS = 8.0f;
-	public const float BIT_10000_MASS = 10.0f;
-
-	//public const int NUM_OF_EXPLOSION_ZONES = 5;
 
 	[Export]
 	public Texture Bit1Texture;
@@ -78,7 +69,6 @@ public partial class BitManager : Node2D
 	[Export]
 	public Texture Bit10000Texture;
 
-	//public AudioStreamPlayer2D AudioPlayer;
 	public Area2D BoundsArea;
 	public Area2D CupArea;
 
@@ -96,10 +86,11 @@ public partial class BitManager : Node2D
 	public TwitchManager TwitchManager;
 	public State State;
 	public User User;
+	public Settings Settings;
+	public Vector2 SpawnPosition;
 	public bool ShouldAutoConnect;
 	public bool ShouldSaveBits;
-	public int BitCount;
-	public Vector2 SpawnPosition;
+	public bool IsUpdateAvailable;
 
 	private float Timer;
 
@@ -113,19 +104,19 @@ public partial class BitManager : Node2D
 
 		Config.Load(this);
 
+		Settings.Reload();
+
 		if (ShouldAutoConnect)
 		{
 			TwitchManager.ValidateThanFetchOrConnect(User);
 		}
 
-		Node2D spawnNode = GetNode<Node2D>(new NodePath("./SpawnPosition"));
+		Node2D spawnNode = GetNode<Node2D>("./SpawnPosition");
 		if (spawnNode == null)
 		{
 			GD.PrintErr("No SpawnNode found under BitManager");
 			return;
 		}
-
-		//AudioPlayer = GetNode<AudioStreamPlayer2D>("./AudioStreamPlayer2D");
 
 		BoundsArea = GetNode<Area2D>(("../BoundsArea"));
 		BoundsArea.BodyExited += BoundsArea_OnBodyExited;
@@ -135,15 +126,63 @@ public partial class BitManager : Node2D
 		SpawnPosition = spawnNode.Position;
 
 		// TODO add version check
-		if (LoadBitNodes())
+		InitBitPool();
+		if (ShouldSaveBits && LoadBitNodes())
 		{
-			GD.Print("GameState loaded");
+			GD.Print("GameState loaded successfully");
 		}
-		else
+		CheckForUpdates();
+	}
+
+	private void CheckForUpdates()
+	{
+		Debug.LogInfo("Checking for updates...");
+
+		HttpRequest request = new HttpRequest();
+		AddChild(request);
+		request.Timeout = 5;
+		request.RequestCompleted += (long result, long responseCode, string[] headers, byte[] body) =>
 		{
-			InitBitPool();
+			if (responseCode == 200)
+			{
+				Json json = new Json();
+				json.Parse(body.GetStringFromUtf8());
+				
+				// Note: Response comes back in array form
+				var response = json.Data.AsGodotArray()[0].AsGodotDictionary();
+				
+				if (response.TryGetValue("tag_name", out Variant tagName))
+				{
+					if ((string)tagName == VERSION_STRING)
+					{
+						Debug.LogInfo("Version up to date!");
+					}
+					else
+					{
+						Debug.LogInfo("Needs an update");
+						IsUpdateAvailable = true;
+					}
+				}
+			}
+			else
+			{
+				Debug.LogErr("Bad response from CheckForUpdates {0}", responseCode);
+			}
+		};
+
+		string url = "https://api.github.com/repos/bscal/BitBasket/releases";
+		string[] headers = new string[]
+		{
+			"Accept: application/vnd.github+json",
+			"X-GitHub-Api-Version: 2022-11-28",
+		};
+		Error err = request.Request(url, headers);
+		if (err != Error.Ok)
+		{
+			GD.PushError(err);
 		}
 	}
+
 
 	public void InitBitPool()
 	{
@@ -186,7 +225,7 @@ public partial class BitManager : Node2D
 			case (State.Running):
 				{
 					Timer += (float)delta;
-					if (Timer > BIT_TIMER)
+					if (Timer > Settings.DropDelay)
 					{
 						Timer = 0;
 						if (BitOrders.Count > 0 && BitOrderProcessNext(BitOrders[0]))
@@ -265,8 +304,8 @@ public partial class BitManager : Node2D
 			CurrentIndex = (CurrentIndex + 1) % MAX_BITS;
 		} while (BitStatesSparse[idx] != -1);
 
-		//AudioPlayer.Play();
-
+		// Note: I am not sure how godot handle these transform updates
+		// Sometimes I need to do Physics server sometimes set the position
 		BitPool[idx].Position = spawnPos;
 
 		PhysicsServer2D.BodySetState(
@@ -294,35 +333,35 @@ public partial class BitManager : Node2D
 		{
 			case BitTypes.Bit1:
 				{
-					BitPool[idx].Mass = BIT_1_MASS;
+					BitPool[idx].Mass = Settings.Mass1;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./1BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit1Texture;
 				}
 				break;
 			case BitTypes.Bit100:
 				{
-					BitPool[idx].Mass = BIT_100_MASS;
+					BitPool[idx].Mass = Settings.Mass100;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./100BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit100Texture;
 				}
 				break;
 			case BitTypes.Bit1000:
 				{
-					BitPool[idx].Mass = BIT_1000_MASS;
+					BitPool[idx].Mass = Settings.Mass1000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./1000BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit1000Texture;
 				}
 				break;
 			case BitTypes.Bit5000:
 				{
-					BitPool[idx].Mass = BIT_5000_MASS;
+					BitPool[idx].Mass = Settings.Mass5000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./5000BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit5000Texture;
 				}
 				break;
 			case BitTypes.Bit10000:
 				{
-					BitPool[idx].Mass = BIT_10000_MASS;
+					BitPool[idx].Mass = Settings.Mass10000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./10000BitCollision").Disabled = false;
 					SpriteCache[idx].Texture = (Texture2D)Bit10000Texture;
 				}
@@ -407,7 +446,7 @@ public partial class BitManager : Node2D
 
 	internal void Explode(RigidBody2D rb)
 	{
-		if (rb.Mass >= BIT_100_MASS - .1)
+		if (rb.Mass >= 1.1)
 		{
 			for (int i = 0; i < BitStatesDenseCount; ++i)
 			{
@@ -419,16 +458,36 @@ public partial class BitManager : Node2D
 						BitStatesDense[i].HasExploded = true;
 
 						float force;
-						if (rb.Mass <= BIT_100_MASS + 1)
-							force = 300;
-						else if (rb.Mass <= BIT_1000_MASS + 1)
-							force = 5500;
-						else if (rb.Mass <= BIT_5000_MASS + 1)
-							force = 10000;
-						else
-							force = 20000;
+						switch (BitStatesDense[i].Type)
+						{
+							case BitTypes.Bit100:
+								{
+									force = Settings.Force100;
+									break;
+								}
+							case BitTypes.Bit1000:
+								{
+									force = Settings.Force1000;
+									break;
+								}
+							case BitTypes.Bit5000:
+								{
+									force = Settings.Force5000;
+									break;
+								}
+							case BitTypes.Bit10000:
+								{
+									force = Settings.Force10000;
+									break;
+								}
+							default:
+								{
+									force = 0;
+									break;
+								}
+						}
 
-						Vector2 velocityForce = Vector2.Up * (rb.LinearVelocity.Y * 2.0f);
+						Vector2 velocityForce = Vector2.Up * (rb.LinearVelocity.Y * Settings.VelocityAmp);
 						Vector2 impulse = Vector2.Up * force + velocityForce;
 
 						foreach (var bit in CupArea.GetOverlappingBodies())
@@ -440,8 +499,6 @@ public partial class BitManager : Node2D
 								bitRB.ApplyImpulse(impulse);
 							}
 						}
-
-						rb.ApplyImpulse(Vector2.Down * 100);
 
 						break;
 					}
@@ -467,20 +524,13 @@ public partial class BitManager : Node2D
 		return dict;
 	}
 
-	private void RemoveSaveFile()
+	private void SaveBitNodes()
 	{
 		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 		if (System.IO.File.Exists(savePath))
 		{
 			System.IO.File.Delete(savePath);
 		}
-	}
-
-	private void SaveBitNodes()
-	{
-		RemoveSaveFile();
-
-		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 
 		using var save = FileAccess.Open(savePath, FileAccess.ModeFlags.Write);
 		for (int i = 0; i < MAX_BITS; ++i)
@@ -507,8 +557,6 @@ public partial class BitManager : Node2D
 
 	private bool LoadBitNodes()
 	{
-		InitBitPool();
-
 		string savePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gamestate.save");
 
 		if (!FileAccess.FileExists(savePath))
@@ -516,16 +564,6 @@ public partial class BitManager : Node2D
 			GD.PrintErr("Save file doesnt exist");
 			return false; // Error! We don't have a save to load.
 		}
-
-		// We need to revert the game state so we're not cloning objects during loading.
-		// This will vary wildly depending on the needs of a project, so take care with
-		// this step.
-		// For our example, we will accomplish this by deleting saveable objects.
-		//var saveNodes = GetTree().GetNodesInGroup("Persistent");
-		//foreach (Node saveNode in saveNodes)
-		//{
-		//	saveNode.QueueFree();
-		//}
 
 		// Load the file line by line and process that dictionary to restore the object
 		// it represents.
