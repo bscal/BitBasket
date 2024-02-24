@@ -4,14 +4,13 @@ using Godot;
 public partial class ExplosiveArea : Area2D
 {
 	public const float SPD_THRESHOLD = 50;
-	public const int BIT_THRESHOLD = 10;
+	public const int BIT_THRESHOLD = 2;
 
 	[Export]
 	public bool AlwaysExplode;
 
 	public BitManager BitManager;
 
-	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
 		BitManager = GetNode<BitManager>("../BitManager");

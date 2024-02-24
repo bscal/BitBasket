@@ -45,8 +45,7 @@ namespace BitCup
 			Mass5000 = (float)res.Data.GetValueOrDefault("Mass5000", 2.5);
 			Mass10000 = (float)res.Data.GetValueOrDefault("Mass10000", 3);
 
-			if (!res.WasFound)
-				Save();
+			Save();
 
 			Debug.LogInfo("Settings reloaded");
 		}
@@ -175,20 +174,5 @@ namespace BitCup
 
 			file.Close();
 		}
-
-
-/*		public static ulong FNVHash64(byte[] arr)
-		{
-			const ulong FNV64_offset_basis = 0xcbf29ce484222325;
-			const ulong FNV64_prime = 0x100000001b3;
-
-			ulong val = FNV64_offset_basis;
-			for (long i = 0; i < arr.LongLength; ++i)
-			{
-				val ^= arr[i];
-				val *= FNV64_prime;
-			}
-			return val;
-		}*/
 	}
 }

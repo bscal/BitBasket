@@ -79,7 +79,7 @@ physics_material_override = SubResource("PhysicsMaterial_0tfi2")
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D"]
 position = Vector2(143, 42)
 scale = Vector2(14.7554, 13.9774)
-polygon = PackedVector2Array(-6.9805, 29.4046, -8.06484, 21.7494, -8.60702, 0.214632, -7.11604, 0.214632, -5.42174, 24.8258, 0.677719, 25.3981, 6.70941, 24.7542, 8.53925, 0.0715446, 9.96246, 0.0715446, 9.55582, 22.0356, 8.67479, 29.3331, 0.609947, 30.0485)
+polygon = PackedVector2Array(-6.9805, 29.4046, -8.06484, 21.7494, -8.60702, 0.214632, -7.11604, 0.214632, -5.42174, 24.8258, 0.745491, 25.7559, 6.70941, 24.7542, 8.53925, 0.0715446, 9.96246, 0.0715446, 9.55582, 22.0356, 8.67479, 29.3331, 0.609947, 30.0485)
 
 [node name="Sprite2D" type="Sprite2D" parent="StaticBody2D"]
 z_index = -1
@@ -256,22 +256,31 @@ layout_mode = 2
 text = "Show Debug
 "
 
+[node name="BtnOpenSettings" type="Button" parent="Container/UI"]
+layout_mode = 2
+text = "Open Settings
+"
+
 [node name="BtnClearBits" type="Button" parent="Container/UI"]
 layout_mode = 2
 text = "Clear Bucket"
 
-[node name="BtnRunTest" type="Button" parent="Container/UI"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Container/UI"]
+layout_mode = 2
+
+[node name="LineEdit" type="LineEdit" parent="Container/UI/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "# of bits"
+max_length = 100000
+virtual_keyboard_type = 2
+
+[node name="BtnRunTest" type="Button" parent="Container/UI/HBoxContainer"]
 layout_mode = 2
 text = "Run Test
 "
 
-[node name="BtnReloadSettings" type="Button" parent="Container/UI"]
-layout_mode = 2
-text = "Reload Settings
-"
-
 [node name="Container3" type="Control" parent="."]
-visible = false
 layout_mode = 3
 anchors_preset = 0
 offset_left = 12.0
@@ -302,9 +311,9 @@ horizontal_alignment = 1
 [node name="Margin" type="MarginContainer" parent="Container3/AspectRatioContainer/VSplitContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 2
-theme_override_constants/margin_top = 2
+theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 2
-theme_override_constants/margin_bottom = 2
+theme_override_constants/margin_bottom = 8
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin"]
 layout_mode = 2
@@ -448,6 +457,7 @@ custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_vertical = 4
 max_value = 4.0
+step = 0.025
 
 [node name="DropDelay" type="HBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
 layout_mode = 2
@@ -472,6 +482,14 @@ custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 size_flags_vertical = 4
 max_value = 1.0
+step = 0.025
+
+[node name="SaveButton" type="Button" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Save"
 
 [node name="PanelUpdateAvailable" type="Control" parent="."]
 layout_mode = 3

@@ -27,11 +27,12 @@ public partial class UIController : Node
 	private CheckBox CheckBoxCheckBoxSaveBits;
 	private CheckBox CheckBoxShowDebug;
 
+	private Button BtnSaveSettings;
 	private Button BtnClearBits;
 	private Button BtnRunTest;
-	private Button BtnReloadSettings;
 
 	private Control SettingsWindow;
+	private Button BtnShowSettings;
 
 	private LineEdit TextEditForce1;
 	private HSlider SliderForce1;
@@ -174,149 +175,142 @@ public partial class UIController : Node
 			BitManager.BitStatesDenseCount = 0;
 		};
 
-		BtnRunTest = GetNode<Button>(new NodePath(UI_URL + "BtnRunTest"));
+		BtnRunTest = GetNode<Button>(new NodePath(UI_URL + "HBoxContainer/BtnRunTest"));
 		Debug.Assert(BtnRunTest != null);
-		BtnRunTest.Pressed += BtnRunTestPressed;
-
-		BtnReloadSettings = GetNode<Button>(UI_URL + "BtnReloadSettings");
-		Debug.Assert(BtnReloadSettings != null);
-		BtnReloadSettings.Pressed += () =>
+		BtnRunTest.Pressed += () =>
 		{
-			BitManager.Settings.Reload();
-		};
-		
-		SettingsWindow = GetNode<Control>("/root/Base/Container3");
-		Debug.Assert(SettingsWindow != null);
-		SettingsWindow.Visible = false;
-		/*
-		TextEditForce1 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force1/Label2");
-		SliderForce1 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force1/HSlider");
+			LineEdit lineEdit = GetNode<LineEdit>(UI_URL + "HBoxContainer/LineEdit");
+			Debug.Assert(lineEdit != null);
 
-		Debug.Assert(TextEditForce1 != null);
-
-		TextEditForce1.Text = BitManager.Settings.Force1.ToString();
-		SliderForce1.Value = BitManager.Settings.Force1;
-
-		TextEditForce1.TextChanged += (text) => 
-		{
-			float value = float.Parse(text);
-			SliderForce1.Value = value;
-			BitManager.Settings.Force1 = value;
-		};
-		SliderForce1.ValueChanged += (double value) =>
-		{
-			TextEditForce1.Text = value.ToString();
-			BitManager.Settings.Force1 = (float)value;
+			int bitAmount;
+			if (string.IsNullOrEmpty(lineEdit.Text))
+				bitAmount = 16325;
+			else
+				bitAmount = int.Parse(lineEdit.Text);
+			
+			BitManager.CreateOrderWithChecks(bitAmount);
 		};
 
-		TextEditForce100 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force100/Label2");
-		SliderForce100 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force100/HSlider");
-
-		TextEditForce100.Text = BitManager.Settings.Force100.ToString();
-		SliderForce100.Value = BitManager.Settings.Force100;
-
-		TextEditForce100.TextChanged += (text) =>
 		{
-			float value = float.Parse(text);
-			SliderForce100.Value = value;
-			BitManager.Settings.Force100 = value;
-		};
-		SliderForce100.ValueChanged += (double value) =>
-		{
-			TextEditForce100.Text = value.ToString();
-			BitManager.Settings.Force100 = (float)value;
-		};
+			SettingsWindow = GetNode<Control>("/root/Base/Container3");
+			Debug.Assert(SettingsWindow != null);
+			SettingsWindow.Visible = false;
 
-		TextEditForce1000 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force1000/Label2");
-		SliderForce1000 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force1000/HSlider");
+			BtnShowSettings = GetNode<Button>("/root/Base/Container/UI/BtnOpenSettings");
+			Debug.Assert(BtnShowSettings != null);
+			BtnShowSettings.Pressed += () =>
+			{
+				if (SettingsWindow.Visible)
+				{
+					UpdateSettings();
+				}
 
-		TextEditForce1000.Text = BitManager.Settings.Force1000.ToString();
-		SliderForce1000.Value = BitManager.Settings.Force1000;
+				SettingsWindow.Visible = !SettingsWindow.Visible;
+			};
 
-		TextEditForce1000.TextChanged += (text) =>
-		{
-			float value = float.Parse(text);
-			SliderForce1000.Value = value;
-			BitManager.Settings.Force1000 = value;
-		};
-		SliderForce1000.ValueChanged += (double value) =>
-		{
-			TextEditForce1000.Text = value.ToString();
-			BitManager.Settings.Force1000 = (float)value;
-		};
+			TextEditForce1 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force1/Label2");
+			SliderForce1 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force1/HSlider");
+			Debug.Assert(TextEditForce1 != null);
+			SliderForce1.Value = BitManager.Settings.Force1;
+			TextEditForce1.Text = BitManager.Settings.Force1.ToString();
+			TextEditForce1.TextChanged += (text) =>
+			{
+				double value = double.Parse(text);
+				SliderForce1.SetValueNoSignal(value);
+			};
+			SliderForce1.ValueChanged += (double value) =>
+			{
+				TextEditForce1.Text = value.ToString();
+			};
 
-		TextEditForce5000 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force5000/Label2");
-		SliderForce5000 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force5000/HSlider");
-		
-		TextEditForce5000.Text = BitManager.Settings.Force5000.ToString();
-		SliderForce5000.Value = BitManager.Settings.Force5000;
-		
-		TextEditForce5000.TextChanged += (text) =>
-		{
-			float value = float.Parse(text);
-			SliderForce5000.Value = value;
-			BitManager.Settings.Force5000 = value;
-		};
-		SliderForce5000.ValueChanged += (double value) =>
-		{
-			TextEditForce5000.Text = value.ToString();
-			BitManager.Settings.Force5000 = (float)value;
-		};
+			TextEditForce100 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force100/Label2");
+			SliderForce100 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force100/HSlider");
+			SliderForce100.Value = BitManager.Settings.Force100;
+			TextEditForce100.Text = BitManager.Settings.Force100.ToString();
+			TextEditForce100.TextChanged += (text) =>
+			{
+				double value = double.Parse(text);
+				SliderForce100.SetValueNoSignal(value);
+			};
+			SliderForce100.ValueChanged += (double value) =>
+			{
+				TextEditForce100.Text = value.ToString();
+			};
 
-		TextEditForce10000 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force10000/Label2");
-		SliderForce10000 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force10000/HSlider");
+			TextEditForce1000 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force1000/Label2");
+			SliderForce1000 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force1000/HSlider");
+			SliderForce1000.Value = BitManager.Settings.Force1000;
+			TextEditForce1000.Text = BitManager.Settings.Force1000.ToString();	
+			TextEditForce1000.TextChanged += (text) =>
+			{
+				double value = double.Parse(text);
+				SliderForce1000.SetValueNoSignal(value);
+			};
+			SliderForce1000.ValueChanged += (double value) =>
+			{
+				TextEditForce1000.Text = value.ToString();
+			};
 
-		TextEditForce10000.Text = BitManager.Settings.Force10000.ToString();
-		SliderForce10000.Value = BitManager.Settings.Force10000;
+			TextEditForce5000 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force5000/Label2");
+			SliderForce5000 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force5000/HSlider");
+			SliderForce5000.Value = BitManager.Settings.Force5000;
+			TextEditForce5000.Text = BitManager.Settings.Force5000.ToString();
+			TextEditForce5000.TextChanged += (text) =>
+			{
+				double value = double.Parse(text);
+				SliderForce5000.SetValueNoSignal(value);
+			};
+			SliderForce5000.ValueChanged += (double value) =>
+			{
+				TextEditForce5000.Text = value.ToString();
+			};
 
-		TextEditForce10000.TextChanged += (text) =>
-		{
-			float value = float.Parse(text);
-			SliderForce10000.Value = value;
-			BitManager.Settings.Force10000 = value;
-		};
-		SliderForce10000.ValueChanged += (double value) =>
-		{
-			TextEditForce10000.Text = value.ToString();
-			BitManager.Settings.Force10000 = (float)value;
-		};
 
-		TextEditVelocityAmp = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/VelocityAmp/Label2");
-		SliderVelocityAmp = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/VelocityAmp/HSlider");
+			TextEditForce10000 = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force10000/Label2");
+			SliderForce10000 = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/Force10000/HSlider");
+			SliderForce10000.Value = BitManager.Settings.Force10000;
+			TextEditForce10000.Text = BitManager.Settings.Force10000.ToString();
+			TextEditForce10000.TextChanged += (text) =>
+			{
+				double value = double.Parse(text);
+				SliderForce10000.SetValueNoSignal(value);
+			};
+			SliderForce10000.ValueChanged += (double value) =>
+			{
+				TextEditForce10000.Text = value.ToString();
+			};
 
-		TextEditVelocityAmp.Text = BitManager.Settings.VelocityAmp.ToString();
-		SliderVelocityAmp.Value = BitManager.Settings.VelocityAmp;
+			TextEditVelocityAmp = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/VelocityAmp/Label2");
+			SliderVelocityAmp = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/VelocityAmp/HSlider");
+			SliderVelocityAmp.Value = BitManager.Settings.VelocityAmp;
+			TextEditVelocityAmp.Text = BitManager.Settings.VelocityAmp.ToString();
+			TextEditVelocityAmp.TextChanged += (text) =>
+			{
+				double value = double.Parse(text);
+				SliderVelocityAmp.SetValueNoSignal(value);
+			};
+			SliderVelocityAmp.ValueChanged += (double value) =>
+			{
+				TextEditVelocityAmp.Text = value.ToString();
+			};
 
-		TextEditVelocityAmp.TextChanged += (text) =>
-		{
-			float value = float.Parse(text);
-			SliderVelocityAmp.Value = value;
-			BitManager.Settings.VelocityAmp = value;
-		};
-		SliderVelocityAmp.ValueChanged += (double value) =>
-		{
-			TextEditVelocityAmp.Text = value.ToString();
-			BitManager.Settings.VelocityAmp = (float)value;
-		};
+			TextEditDropDelay = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/DropDelay/Label2");
+			SliderDropDelay = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/DropDelay/HSlider");
+			TextEditDropDelay.Text = BitManager.Settings.DropDelay.ToString();
+			SliderDropDelay.Value = BitManager.Settings.DropDelay;
+			TextEditDropDelay.TextChanged += (text) =>
+			{
+				double value = double.Parse(text);
+				SliderDropDelay.SetValueNoSignal(value);
+			};
+			SliderDropDelay.ValueChanged += (double value) =>
+			{
+				TextEditDropDelay.Text = value.ToString();
+			};
+		}
 
-		TextEditDropDelay = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/DropDelay/Label2");
-		SliderDropDelay = GetNode<HSlider>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/DropDelay/HSlider");
-
-		TextEditDropDelay.Text = BitManager.Settings.DropDelay.ToString();
-		SliderDropDelay.Value = BitManager.Settings.DropDelay;
-
-		TextEditDropDelay.TextChanged += (text) =>
-		{
-			float value = float.Parse(text);
-			SliderDropDelay.Value = value;
-			BitManager.Settings.DropDelay = value;
-		};
-		SliderDropDelay.ValueChanged += (double value) =>
-		{
-			TextEditDropDelay.Text = value.ToString();
-			BitManager.Settings.DropDelay = (float)value;
-		};
-		*/
+		BtnSaveSettings = GetNode<Button>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/SaveButton");
+		BtnSaveSettings.Pressed += UpdateSettings;
 
 		PanelUpdateAvailable = GetNode<Control>("/root/Base/PanelUpdateAvailable");
 		Debug.Assert(PanelUpdateAvailable != null);
@@ -326,22 +320,22 @@ public partial class UIController : Node
 		BtnCloseUpdateAvailable.Pressed += () => { PanelUpdateAvailable.Visible = false; };
 	}
 
+	private void UpdateSettings()
+	{
+		BitManager.Settings.DropDelay = (float)SliderDropDelay.Value;
+		BitManager.Settings.VelocityAmp = (float)SliderVelocityAmp.Value;
+		BitManager.Settings.Force1 = (float)SliderForce1.Value;
+		BitManager.Settings.Force100 = (float)SliderForce100.Value;
+		BitManager.Settings.Force1000 = (float)SliderForce1000.Value;
+		BitManager.Settings.Force5000 = (float)SliderForce5000.Value;
+		BitManager.Settings.Force10000 = (float)SliderForce10000.Value;
+		BitManager.Settings.Save();
+	}
+
 	private void UpdateValues()
 	{
 		BitManager.User.Username = TextChannelName.Text;
 		BitManager.ShouldAutoConnect = CheckBoxAutoConnect.ActionMode == BaseButton.ActionModeEnum.Press;
-	}
-
-	private void BtnRunTestPressed()
-	{
-		BitOrder testOrder = new BitOrder();
-		testOrder.BitAmounts[(int)BitTypes.Bit1] = 50;
-		testOrder.BitAmounts[(int)BitTypes.Bit100] = 20;
-		testOrder.BitAmounts[(int)BitTypes.Bit1000] = 10;
-		testOrder.BitAmounts[(int)BitTypes.Bit5000] = 5;
-		testOrder.BitAmounts[(int)BitTypes.Bit10000] = 2;
-
-		BitManager.BitOrders.Add(testOrder);
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
