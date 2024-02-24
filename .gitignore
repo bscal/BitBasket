@@ -3,4 +3,5 @@
 .vs/
 build/
 config.txt
+settings.txt
 gamestate.save

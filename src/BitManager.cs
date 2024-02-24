@@ -316,7 +316,12 @@ public partial class BitManager : Node2D
 		PhysicsServer2D.BodySetState(
 			BitPool[idx].GetRid(),
 			PhysicsServer2D.BodyState.LinearVelocity,
-			new Vector2(GD.Randf() * 2.0f - 1.0f, 0.0f));
+			new Vector2((GD.Randf() * 2.0f - 1.0f) * 10.0f, 0.0f));
+	
+		PhysicsServer2D.BodySetState(
+			BitPool[idx].GetRid(),
+			PhysicsServer2D.BodyState.AngularVelocity,
+			(GD.Randf() * 2.0f - 1.0f) * 10.0f);
 
 		BitPool[idx].ProcessMode = ProcessModeEnum.Always;
 		BitPool[idx].Freeze = false;

@@ -54,6 +54,10 @@ public partial class UIController : Node
 	private LineEdit TextEditDropDelay;
 	private HSlider SliderDropDelay;
 
+	private Control PanelUpdateAvailable;
+	private Button BtnCloseUpdateAvailable;
+
+	private bool HasAlertedOfUpdate;
 
 	private const string UI_URL = "../Container/UI/";
 	private const string DEBUG_URL = "../Container2/DebugUI/";
@@ -313,6 +317,13 @@ public partial class UIController : Node
 			BitManager.Settings.DropDelay = (float)value;
 		};
 		*/
+
+		PanelUpdateAvailable = GetNode<Control>("/root/Base/PanelUpdateAvailable");
+		Debug.Assert(PanelUpdateAvailable != null);
+		PanelUpdateAvailable.Visible = false;
+
+		BtnCloseUpdateAvailable = GetNode<Button>("/root/Base/PanelUpdateAvailable/PanelContainer/VBoxContainer/CloseUpdateAvailable");
+		BtnCloseUpdateAvailable.Pressed += () => { PanelUpdateAvailable.Visible = false; };
 	}
 
 	private void UpdateValues()
@@ -336,6 +347,12 @@ public partial class UIController : Node
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
+		if (BitManager.IsUpdateAvailable && !HasAlertedOfUpdate)
+		{
+			HasAlertedOfUpdate = true;
+			PanelUpdateAvailable.Visible = true;
+		}
+		
 		if (BitManager.TwitchManager != null
 			&& BitManager.TwitchManager.Client != null
 			&& BitManager.TwitchManager.Client.IsConnected)
