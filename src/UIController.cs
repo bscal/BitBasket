@@ -28,6 +28,7 @@ public partial class UIController : Node
 	private CheckBox CheckBoxShowDebug;
 
 	private Button BtnSaveSettings;
+	private Button BtnResetSettings;
 	private Button BtnClearBits;
 	private Button BtnRunTest;
 
@@ -309,8 +310,22 @@ public partial class UIController : Node
 			};
 		}
 
-		BtnSaveSettings = GetNode<Button>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/SaveButton");
+		BtnSaveSettings = GetNode<Button>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/HBoxContainer/SaveButton");
 		BtnSaveSettings.Pressed += UpdateSettings;
+
+		BtnResetSettings = GetNode<Button>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/HBoxContainer/ResetButton");
+		BtnResetSettings.Pressed += () =>
+		{
+			BitManager.Settings.SetValuesOrDefault(new Godot.Collections.Dictionary<string, Variant>());
+			SliderDropDelay.Value = BitManager.Settings.DropDelay;
+			SliderVelocityAmp.Value = BitManager.Settings.VelocityAmp;
+			SliderForce1.Value = BitManager.Settings.Force1;
+			SliderForce100.Value = BitManager.Settings.Force100;
+			SliderForce1000.Value = BitManager.Settings.Force1000;
+			SliderForce5000.Value = BitManager.Settings.Force5000;
+			SliderForce10000.Value = BitManager.Settings.Force10000;
+			BitManager.Settings.Save();
+		};
 
 		PanelUpdateAvailable = GetNode<Control>("/root/Base/PanelUpdateAvailable");
 		Debug.Assert(PanelUpdateAvailable != null);

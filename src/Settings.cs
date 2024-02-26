@@ -32,22 +32,27 @@ namespace BitCup
 		{
 			SettingsResult res = BitCup.Settings.Parse("settings");
 
-			DropDelay = (float)res.Data.GetValueOrDefault("DropDelay", .25f);
-			VelocityAmp = (float)res.Data.GetValueOrDefault("VelocityAmp", 1.25f);
-			Force1 = (float)res.Data.GetValueOrDefault("Force1", 0);
-			Force100 = (float)res.Data.GetValueOrDefault("Force100", 100);
-			Force1000 = (float)res.Data.GetValueOrDefault("Force1000", 500);
-			Force5000 = (float)res.Data.GetValueOrDefault("Force5000", 1750);
-			Force10000 = (float)res.Data.GetValueOrDefault("Force10000", 5000);
-			Mass1 = (float)res.Data.GetValueOrDefault("Mass1", 1);
-			Mass100 = (float)res.Data.GetValueOrDefault("Mass100", 1.5);
-			Mass1000 = (float)res.Data.GetValueOrDefault("Mass1000", 2);
-			Mass5000 = (float)res.Data.GetValueOrDefault("Mass5000", 2.5);
-			Mass10000 = (float)res.Data.GetValueOrDefault("Mass10000", 3);
+			SetValuesOrDefault(res.Data);
 
 			Save();
 
 			Debug.LogInfo("Settings reloaded");
+		}
+
+		public void SetValuesOrDefault(Godot.Collections.Dictionary<string, Variant> data)
+		{
+			DropDelay = (float)data.GetValueOrDefault("DropDelay", .25f);
+			VelocityAmp = (float)data.GetValueOrDefault("VelocityAmp", 1.1f);
+			Force1 = (float)data.GetValueOrDefault("Force1", 0);
+			Force100 = (float)data.GetValueOrDefault("Force100", 100);
+			Force1000 = (float)data.GetValueOrDefault("Force1000", 450);
+			Force5000 = (float)data.GetValueOrDefault("Force5000", 800);
+			Force10000 = (float)data.GetValueOrDefault("Force10000", 1600);
+			Mass1 = (float)data.GetValueOrDefault("Mass1", 1);
+			Mass100 = (float)data.GetValueOrDefault("Mass100", 1.5);
+			Mass1000 = (float)data.GetValueOrDefault("Mass1000", 2);
+			Mass5000 = (float)data.GetValueOrDefault("Mass5000", 2.5);
+			Mass10000 = (float)data.GetValueOrDefault("Mass10000", 3);
 		}
 
 		public void Save()

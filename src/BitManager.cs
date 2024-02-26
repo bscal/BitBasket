@@ -57,6 +57,7 @@ public partial class BitManager : Node2D
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
 	public const int MAX_BITS = 256;
+	public const int MAX_ORDERS = 64;
 
 	[Export]
 	public Texture Bit1Texture;
@@ -81,7 +82,7 @@ public partial class BitManager : Node2D
 	public int BitStatesDenseCount;
 	public BitState[] BitStatesDense = new BitState[MAX_BITS];
 
-	public List<BitOrder> BitOrders = new List<BitOrder>(32);
+	public List<BitOrder> BitOrders = new List<BitOrder>(MAX_ORDERS);
 
 	public TwitchManager TwitchManager;
 	public State State;
@@ -140,7 +141,7 @@ public partial class BitManager : Node2D
 
 		HttpRequest request = new HttpRequest();
 		AddChild(request);
-		request.Timeout = 5;
+		request.Timeout = 1.0;
 		request.RequestCompleted += (long result, long responseCode, string[] headers, byte[] body) =>
 		{
 			if (responseCode == 200)

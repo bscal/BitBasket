@@ -232,6 +232,7 @@ namespace BitCup
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
 			request.RequestCompleted += Client_OnRequestCompleted;
+			request.Timeout = 5;
 			Error err = request.Request(URL, headers);
 			if (err != Error.Ok)
 			{
@@ -351,18 +352,42 @@ namespace BitCup
 		{
 			if (e.ChatMessage.Bits > 0)
 			{
-				GD.Print("BitOrder receieved!");
+				int bitsInMessage = e.ChatMessage.Bits;
+				int countedTotalBits = 0;
+				int orderIndex = 0;
+				int[] orders = new int[BitManager.MAX_ORDERS];
+				string[] bitMsges = e.ChatMessage.Message.Split(' ');
+				foreach (var msg in bitMsges)
+				{
+					if (orderIndex == orders.Length - 1)
+					{
+						int bits = bitsInMessage - countedTotalBits;
+						countedTotalBits += bits;
+						orders[orders.Length] = bits;
+						break;
+					}
 
-				int bits = e.ChatMessage.Bits;
+					if (msg.Length > 5 && msg.StartsWith("cheer"))
+					{
+						int parse = int.Parse(msg.Substring(5));
+						countedTotalBits += parse;
+						orders[orderIndex] = parse;
+						++orderIndex;
+					}
+				}
 
-				BitManager.CreateOrderWithChecks(bits);
+				if (countedTotalBits == bitsInMessage)
+				{
+					foreach (var order in orders)
+					{
+						BitManager.CreateOrderWithChecks(order);
+					}
+				}
 			}
 			else if ((e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Moderator
 				|| e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Broadcaster)
 				&& e.ChatMessage.Message.StartsWith("!bb"))
 			{
-				GD.Print("BitOrder test!");
-
 				string[] split = e.ChatMessage.Message.Split(" ");
 				if (split[1] == "test" && split.Length >= 3)
 				{
