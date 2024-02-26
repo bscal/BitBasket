@@ -52,7 +52,7 @@ public struct User
 public partial class BitManager : Node2D
 {
 	public const int VersionMajor = 0;
-	public const int VersionMinor = 2;
+	public const int VersionMinor = 3;
 
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
@@ -154,14 +154,20 @@ public partial class BitManager : Node2D
 				
 				if (response.TryGetValue("tag_name", out Variant tagName))
 				{
-					if ((string)tagName == VERSION_STRING)
-					{
-						Debug.LogInfo("Version up to date!");
-					}
-					else
+					string[] split = ((string)tagName).Split('.');
+					if (split.Length != 2)
+						return;
+
+					int major = int.Parse(split[0]);
+					int minor = int.Parse(split[1]);
+					if (VersionMajor < major || VersionMinor < minor)
 					{
 						Debug.LogInfo("Needs an update");
 						IsUpdateAvailable = true;
+					}
+					else
+					{
+						Debug.LogInfo("Version up to date!");
 					}
 				}
 			}
