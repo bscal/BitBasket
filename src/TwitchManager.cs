@@ -353,36 +353,7 @@ namespace BitCup
 			if (e.ChatMessage.Bits > 0)
 			{
 				int bitsInMessage = e.ChatMessage.Bits;
-				int countedTotalBits = 0;
-				int orderIndex = 0;
-				int[] orders = new int[BitManager.MAX_ORDERS];
-				string[] bitMsges = e.ChatMessage.Message.Split(' ');
-				foreach (var msg in bitMsges)
-				{
-					if (orderIndex == orders.Length - 1)
-					{
-						int bits = bitsInMessage - countedTotalBits;
-						countedTotalBits += bits;
-						orders[orders.Length] = bits;
-						break;
-					}
-
-					if (msg.Length > 5 && msg.StartsWith("cheer"))
-					{
-						int parse = int.Parse(msg.Substring(5));
-						countedTotalBits += parse;
-						orders[orderIndex] = parse;
-						++orderIndex;
-					}
-				}
-
-				if (countedTotalBits == bitsInMessage)
-				{
-					foreach (var order in orders)
-					{
-						BitManager.CreateOrderWithChecks(order);
-					}
-				}
+				BitManager.CreateOrderWithChecks(bitsInMessage);
 			}
 			else if ((e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Moderator
 				|| e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Broadcaster)
