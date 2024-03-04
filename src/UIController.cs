@@ -76,18 +76,18 @@ public partial class UIController : Node
 
 		CheckBoxAutoConnect = GetNode<CheckBox>(new NodePath(UI_URL +  "Bools/CheckBoxAutoConnect"));
 		Debug.Assert(CheckBoxAutoConnect != null);
-		CheckBoxAutoConnect.ButtonPressed = BitManager.ShouldAutoConnect;
+		CheckBoxAutoConnect.ButtonPressed = BitManager.Settings.ShouldAutoConnect;
 		CheckBoxAutoConnect.Pressed += () =>
 		{
-			BitManager.ShouldAutoConnect = !BitManager.ShouldAutoConnect;
+			BitManager.Settings.ShouldAutoConnect = !BitManager.Settings.ShouldAutoConnect;
 		};
 
 		CheckBoxCheckBoxSaveBits = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxSaveBits"));
 		Debug.Assert(CheckBoxCheckBoxSaveBits != null);
-		CheckBoxCheckBoxSaveBits.ButtonPressed = BitManager.ShouldSaveBits;
+		CheckBoxCheckBoxSaveBits.ButtonPressed = BitManager.Settings.ShouldSaveBits;
 		CheckBoxCheckBoxSaveBits.Pressed += () =>
 		{
-			BitManager.ShouldSaveBits = !BitManager.ShouldSaveBits;
+			BitManager.Settings.ShouldSaveBits = !BitManager.Settings.ShouldSaveBits;
 		};
 
 		CheckBoxShowDebug = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxShowDebug"));
@@ -97,12 +97,12 @@ public partial class UIController : Node
 			DebugUI.Visible = !DebugUI.Visible;
 		};
 
-		CheckBoxExperimentalBitParsing = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxShowDebug"));
+		CheckBoxExperimentalBitParsing = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxExperimentalBitParsing"));
 		Debug.Assert(CheckBoxExperimentalBitParsing != null);
+		CheckBoxExperimentalBitParsing.ButtonPressed = BitManager.Settings.ExperimentalBitParsing;
 		CheckBoxExperimentalBitParsing.Pressed += () =>
 		{
 			BitManager.Settings.ExperimentalBitParsing = !BitManager.Settings.ExperimentalBitParsing;
-			BitManager.Settings.Save();
 		};
 
 		DebugUI = GetNode<BoxContainer>(new NodePath(DEBUG_URL));
@@ -358,7 +358,7 @@ public partial class UIController : Node
 	private void UpdateValues()
 	{
 		BitManager.User.Username = TextChannelName.Text;
-		BitManager.ShouldAutoConnect = CheckBoxAutoConnect.ActionMode == BaseButton.ActionModeEnum.Press;
+		BitManager.Settings.ShouldAutoConnect = CheckBoxAutoConnect.ActionMode == BaseButton.ActionModeEnum.Press;
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.

@@ -31,6 +31,8 @@ namespace BitCup
 		public float Mass5000;
 		public float Mass10000;
 
+		public bool ShouldAutoConnect;
+		public bool ShouldSaveBits;
 		public bool ExperimentalBitParsing;
 
 		public void Reload()
@@ -65,6 +67,8 @@ namespace BitCup
 			Mass1000 = (float)data.GetValueOrDefault("Mass1000", 2);
 			Mass5000 = (float)data.GetValueOrDefault("Mass5000", 2.5);
 			Mass10000 = (float)data.GetValueOrDefault("Mass10000", 3);
+			ShouldAutoConnect = (bool)data.GetValueOrDefault("ShouldAutoConnect", false);
+			ShouldSaveBits = (bool)data.GetValueOrDefault("ShouldSaveBits", false);
 			ExperimentalBitParsing = (bool)data.GetValueOrDefault("ExperimentalBitParsing", false);
 		}
 
@@ -85,6 +89,8 @@ namespace BitCup
 			{ "Mass1000", Variant.CreateFrom(Mass1000) },
 			{ "Mass5000", Variant.CreateFrom(Mass5000) },
 			{ "Mass10000", Variant.CreateFrom(Mass10000) },
+			{ "ShouldAutoConnect", Variant.CreateFrom(ShouldAutoConnect) },
+			{ "ShouldSaveBits", Variant.CreateFrom(ShouldSaveBits) },
 			{ "ExperimentalBitParsing", Variant.CreateFrom(ExperimentalBitParsing) }
 		};
 

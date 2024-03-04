@@ -33,14 +33,6 @@ namespace BitCup
 						bitManager.User.Username = (split.Length >= 1) ? split[0] : string.Empty;
 						bitManager.User.OAuth = (split.Length >= 2) ? split[1] : string.Empty;
 					}
-					else if (line.StartsWith("auto_connect:"))
-					{
-						bitManager.ShouldAutoConnect = bool.Parse(line.Split(' ')[1]);
-					}
-					else if (line.StartsWith("save_bits:"))
-					{
-						bitManager.ShouldSaveBits = bool.Parse(line.Split(' ')[1]);
-					}
 				}
 			}
 			else
@@ -62,8 +54,6 @@ namespace BitCup
 			string[] lines = new string[]
 			{
 				string.Format("user: {0};{1}", bitManager.User.Username, bitManager.User.OAuth),
-				"auto_connect: " + bitManager.ShouldAutoConnect,
-				"save_bits: " + bitManager.ShouldSaveBits,
 			};
 
 			File.WriteAllLines(path, lines);

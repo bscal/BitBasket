@@ -54,6 +54,8 @@ public partial class BitManager : Node2D
 	public const int VersionMajor = 0;
 	public const int VersionMinor = 3;
 
+	public const int VersionBitSerialization = 1;
+
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
 	public const int MAX_BITS = 256;
@@ -89,8 +91,6 @@ public partial class BitManager : Node2D
 	public User User;
 	public Settings Settings;
 	public Vector2 SpawnPosition;
-	public bool ShouldAutoConnect;
-	public bool ShouldSaveBits;
 	public bool IsUpdateAvailable;
 
 	private float Timer;
@@ -107,7 +107,7 @@ public partial class BitManager : Node2D
 
 		Settings.Reload();
 
-		if (ShouldAutoConnect)
+		if (Settings.ShouldAutoConnect)
 		{
 			TwitchManager.ValidateThanFetchOrConnect(User);
 		}
@@ -128,7 +128,7 @@ public partial class BitManager : Node2D
 
 		// TODO add version check
 		InitBitPool();
-		if (ShouldSaveBits && LoadBitNodes())
+		if (Settings.ShouldSaveBits && LoadBitNodes())
 		{
 			GD.Print("GameState loaded successfully");
 		}
@@ -237,7 +237,7 @@ public partial class BitManager : Node2D
 						Timer = 0;
 						if (BitOrders.Count > 0 && BitOrderProcessNext(BitOrders[0]))
 						{
-							BitOrders.Remove(BitOrders[0]);
+							BitOrders.RemoveAt(0);
 						}
 					}
 				}
@@ -257,8 +257,9 @@ public partial class BitManager : Node2D
 			}
 
 			Config.Save(this);
+			Settings.Save();
 
-			if (ShouldSaveBits)
+			if (Settings.ShouldSaveBits)
 			{
 				SaveBitNodes();
 			}
@@ -275,9 +276,12 @@ public partial class BitManager : Node2D
 	public void CreateOrderWithChecks(int amount)
 	{
 		if (amount <= 0)
-
+		{
 			return;
+		}
+
 		BitOrder bitOrder = new BitOrder();
+
 		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (byte)(amount / 10000);
 		amount %= 10000;
 
@@ -291,13 +295,6 @@ public partial class BitManager : Node2D
 		amount %= 100;
 
 		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (byte)(amount);
-
-		if (BitOrders.Count == BitOrders.Capacity)
-		{
-			GD.PrintErr("Bit orders capacity reached!");
-			BitCup.Debug.Assert(BitOrders.Count < BitOrders.Capacity);
-			return;
-		}
 
 		BitOrders.Add(bitOrder);
 	}
@@ -523,8 +520,7 @@ public partial class BitManager : Node2D
 	{
 		var dict = new Godot.Collections.Dictionary<string, Variant>();
 
-		dict.Add("MajorVer", VersionMajor);
-		dict.Add("MinorVer", VersionMinor);
+		dict.Add("VersionBitSerialization", VersionBitSerialization);
 		dict.Add("PosX", Mathf.Floor(node.Position.X));
 		dict.Add("PosY", Mathf.Floor(node.Position.Y));
 		dict.Add("IsActive", node.ProcessMode == ProcessModeEnum.Always);
@@ -581,13 +577,13 @@ public partial class BitManager : Node2D
 		// it represents.
 		using var saveGame = FileAccess.Open(savePath, FileAccess.ModeFlags.Read);
 
+		// Basic check that file exists but is empty
 		if (saveGame.GetLength() < MAX_BITS)
 		{
 			GD.Print("GameState save file does not meet size requirements");
 			return false;
 		}
 
-		int lineCount = 0;
 		while (saveGame.GetPosition() < saveGame.GetLength())
 		{
 			var jsonString = saveGame.GetLine();
@@ -604,25 +600,15 @@ public partial class BitManager : Node2D
 			// Get the data from the JSON object
 			var nodeData = new Godot.Collections.Dictionary<string, Variant>((Godot.Collections.Dictionary)json.Data);
 
-			if ((int)nodeData["MajorVer"] != VersionMajor
-				|| (int)nodeData["MinorVer"] != VersionMinor)
-			{
-				GD.PrintErr(string.Format("Version mismatch. Saved: {0}.{1}, Expected: {2}.{3}",
-					(int)nodeData["MajorVer"], (int)nodeData["MinorVer"], VersionMajor, VersionMinor));
-
-				return false;
-			}
-
-			if ((bool)nodeData["IsActive"])
+			if (nodeData.TryGetValue("VersionBitSerialization", out Variant bitVersion)
+				&& (int)bitVersion == VersionBitSerialization
+				&& (bool)nodeData["IsActive"])
 			{
 				BitTypes type = (BitTypes)((int)nodeData["BitType"]);
 				Vector2 pos = new Vector2((float)nodeData["PosX"], (float)nodeData["PosY"]);
 				int denseIdx = SpawnNode(type, pos);
-
 				BitStatesDense[denseIdx].HasExploded = (bool)nodeData["HasExploded"];
 			}
-
-			++lineCount;
 		}
 		return true;
 	}
