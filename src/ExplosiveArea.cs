@@ -3,7 +3,6 @@ using Godot;
 
 public partial class ExplosiveArea : Area2D
 {
-	public const float SPD_THRESHOLD = 50;
 	public const int BIT_THRESHOLD = 2;
 
 	[Export]
@@ -21,29 +20,15 @@ public partial class ExplosiveArea : Area2D
 
 	private void OnBodyEntered(Node2D body)
 	{
-		if (body is RigidBody2D rb
-			&& (AlwaysExplode || GetOverlappingBodies().Count > BIT_THRESHOLD))
+		if (body is RigidBody2D rb)
 		{
 			if (AlwaysExplode)
 			{
 				BitManager.Explode(rb);
 			}
-			else
+			else if (GetOverlappingBodies().Count > BIT_THRESHOLD)
 			{
-				int count = 0;
-				foreach (var bit in GetOverlappingBodies())
-				{
-					if (bit is RigidBody2D bitRB
-						&& bitRB.LinearVelocity.Length() <= SPD_THRESHOLD)
-					{
-						++count;
-					}
-				}
-
-				if (count > BIT_THRESHOLD)
-				{
-					BitManager.Explode(rb);
-				}
+				BitManager.Explode(rb);
 			}
 		}
 	}

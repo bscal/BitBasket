@@ -26,6 +26,7 @@ public partial class UIController : Node
 	private CheckBox CheckBoxAutoConnect;
 	private CheckBox CheckBoxCheckBoxSaveBits;
 	private CheckBox CheckBoxShowDebug;
+	private CheckBox CheckBoxExperimentalBitParsing;
 
 	private Button BtnSaveSettings;
 	private Button BtnResetSettings;
@@ -81,7 +82,6 @@ public partial class UIController : Node
 			BitManager.ShouldAutoConnect = !BitManager.ShouldAutoConnect;
 		};
 
-
 		CheckBoxCheckBoxSaveBits = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxSaveBits"));
 		Debug.Assert(CheckBoxCheckBoxSaveBits != null);
 		CheckBoxCheckBoxSaveBits.ButtonPressed = BitManager.ShouldSaveBits;
@@ -95,6 +95,14 @@ public partial class UIController : Node
 		CheckBoxShowDebug.Pressed += () =>
 		{
 			DebugUI.Visible = !DebugUI.Visible;
+		};
+
+		CheckBoxExperimentalBitParsing = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxShowDebug"));
+		Debug.Assert(CheckBoxExperimentalBitParsing != null);
+		CheckBoxExperimentalBitParsing.Pressed += () =>
+		{
+			BitManager.Settings.ExperimentalBitParsing = !BitManager.Settings.ExperimentalBitParsing;
+			BitManager.Settings.Save();
 		};
 
 		DebugUI = GetNode<BoxContainer>(new NodePath(DEBUG_URL));

@@ -15,6 +15,9 @@ namespace BitCup
 
 	public struct Settings
 	{
+		public const int VERSION = 1;
+		public const bool FORCE_UPDATE = true;
+
 		public float DropDelay;
 		public float VelocityAmp;
 		public float Force1;
@@ -27,6 +30,8 @@ namespace BitCup
 		public float Mass1000;
 		public float Mass5000;
 		public float Mass10000;
+
+		public bool ExperimentalBitParsing;
 
 		public void Reload()
 		{
@@ -41,24 +46,33 @@ namespace BitCup
 
 		public void SetValuesOrDefault(Godot.Collections.Dictionary<string, Variant> data)
 		{
+			if (data.TryGetValue("Version", out Variant version)
+					&& (int)version < VERSION
+					&& FORCE_UPDATE)
+			{
+				data.Clear();
+			}
+
 			DropDelay = (float)data.GetValueOrDefault("DropDelay", .25f);
-			VelocityAmp = (float)data.GetValueOrDefault("VelocityAmp", 1.1f);
+			VelocityAmp = (float)data.GetValueOrDefault("VelocityAmp", 0.5f);
 			Force1 = (float)data.GetValueOrDefault("Force1", 0);
-			Force100 = (float)data.GetValueOrDefault("Force100", 100);
-			Force1000 = (float)data.GetValueOrDefault("Force1000", 450);
-			Force5000 = (float)data.GetValueOrDefault("Force5000", 800);
-			Force10000 = (float)data.GetValueOrDefault("Force10000", 1600);
+			Force100 = (float)data.GetValueOrDefault("Force100", 500);
+			Force1000 = (float)data.GetValueOrDefault("Force1000", 1000);
+			Force5000 = (float)data.GetValueOrDefault("Force5000", 1400);
+			Force10000 = (float)data.GetValueOrDefault("Force10000", 2400);
 			Mass1 = (float)data.GetValueOrDefault("Mass1", 1);
 			Mass100 = (float)data.GetValueOrDefault("Mass100", 1.5);
 			Mass1000 = (float)data.GetValueOrDefault("Mass1000", 2);
 			Mass5000 = (float)data.GetValueOrDefault("Mass5000", 2.5);
 			Mass10000 = (float)data.GetValueOrDefault("Mass10000", 3);
+			ExperimentalBitParsing = (bool)data.GetValueOrDefault("ExperimentalBitParsing", false);
 		}
 
 		public void Save()
 		{
 			Godot.Collections.Dictionary<string, Variant> res = new()
 		{
+			{ "Version", Variant.CreateFrom(VERSION) },
 			{ "DropDelay", Variant.CreateFrom(DropDelay) },
 			{ "VelocityAmp", Variant.CreateFrom(VelocityAmp) },
 			{ "Force1", Variant.CreateFrom(Force1) },
@@ -71,6 +85,7 @@ namespace BitCup
 			{ "Mass1000", Variant.CreateFrom(Mass1000) },
 			{ "Mass5000", Variant.CreateFrom(Mass5000) },
 			{ "Mass10000", Variant.CreateFrom(Mass10000) },
+			{ "ExperimentalBitParsing", Variant.CreateFrom(ExperimentalBitParsing) }
 		};
 
 			BitCup.Settings.Write("settings", res);

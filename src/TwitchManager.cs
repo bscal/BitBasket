@@ -6,6 +6,7 @@ using TwitchLib.Communication.Models;
 using TwitchLib.Communication.Clients;
 using Godot;
 using TwitchLib.Communication.Events;
+using System.Collections.Generic;
 
 namespace BitCup
 {
@@ -352,8 +353,21 @@ namespace BitCup
 		{
 			if (e.ChatMessage.Bits > 0)
 			{
-				int bitsInMessage = e.ChatMessage.Bits;
-				BitManager.CreateOrderWithChecks(bitsInMessage);
+				if (BitManager.Settings.ExperimentalBitParsing)
+				{
+					foreach (var emote in e.ChatMessage.EmoteSet.Emotes)
+					{
+						if (emote.Name.StartsWith("cheer"))
+						{
+							int amount = int.Parse(emote.Name.Substring(5));
+							BitManager.CreateOrderWithChecks(amount);
+						}
+					}
+				}
+				else
+				{
+					BitManager.CreateOrderWithChecks(e.ChatMessage.Bits);
+				}
 			}
 			else if ((e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Moderator
 				|| e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Broadcaster)
@@ -376,6 +390,14 @@ namespace BitCup
 					GD.PrintErr("Command invalid, " + e.ChatMessage.Message);
 				}
 			}
+#if DEBUG
+			Debug.LogInfo(e.ChatMessage.RawIrcMessage);
+			Debug.LogInfo(" ");
+			foreach (var emote in e.ChatMessage.EmoteSet.Emotes)
+			{
+				Debug.LogInfo(emote.Name);
+			}
+#endif
 		}
 
 		private void Client_OnRequestCompleted(long result, long responseCode, string[] headers, byte[] body)
