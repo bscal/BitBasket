@@ -59,7 +59,6 @@ public partial class BitManager : Node2D
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
 	public const int MAX_BITS = 256;
-	public const int MAX_ORDERS = 64;
 
 	[Export]
 	public Texture Bit1Texture;
@@ -84,7 +83,7 @@ public partial class BitManager : Node2D
 	public int BitStatesDenseCount;
 	public BitState[] BitStatesDense = new BitState[MAX_BITS];
 
-	public List<BitOrder> BitOrders = new List<BitOrder>(MAX_ORDERS);
+	public List<BitOrder> BitOrders = new List<BitOrder>(128);
 
 	public TwitchManager TwitchManager;
 	public State State;
@@ -462,7 +461,7 @@ public partial class BitManager : Node2D
 				int idx = BitStatesDense[i].Index;
 				if (BitPool[idx].GetInstanceId() == rb.GetInstanceId())
 				{
-					if (!BitStatesDense[i].HasExploded)
+					if (!BitStatesDense[i].HasExploded || rb.LinearVelocity.Y > 1024)
 					{
 						BitStatesDense[i].HasExploded = true;
 
@@ -503,7 +502,7 @@ public partial class BitManager : Node2D
 						{
 							if (bit is RigidBody2D bitRB
 								&& bit.GetInstanceId() != rb.GetInstanceId()
-								&& bitRB.LinearVelocity.Length() < 80)
+								&& bitRB.LinearVelocity.Length() < 128)
 							{
 								bitRB.ApplyImpulse(impulse);
 							}

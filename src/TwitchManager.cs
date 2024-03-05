@@ -6,7 +6,6 @@ using TwitchLib.Communication.Models;
 using TwitchLib.Communication.Clients;
 using Godot;
 using TwitchLib.Communication.Events;
-using System.Collections.Generic;
 
 namespace BitCup
 {

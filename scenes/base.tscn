@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://c4q1tu7v8d5ha"]
+[gd_scene load_steps=20 format=3 uid="uid://c4q1tu7v8d5ha"]
 
 [ext_resource type="Script" path="res://src/BitManager.cs" id="1_mk7q2"]
 [ext_resource type="Texture2D" uid="uid://cbn71c1qidg0w" path="res://assets/Bit1.png" id="2_cif33"]
@@ -11,9 +11,6 @@
 [ext_resource type="Script" path="res://src/UIController.cs" id="8_fki47"]
 [ext_resource type="Script" path="res://src/ExplosiveArea.cs" id="9_e53da"]
 [ext_resource type="StyleBox" uid="uid://dwriuru6ipx36" path="res://assets/textedit_style.tres" id="10_lsygd"]
-
-[sub_resource type="SegmentShape2D" id="SegmentShape2D_hl2p4"]
-b = Vector2(168, 1)
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_0tfi2"]
 absorbent = true
@@ -75,9 +72,6 @@ position = Vector2(835, 0)
 stream = ExtResource("7_loypx")
 volume_db = -11.258
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="BitManager"]
-shape = SubResource("SegmentShape2D_hl2p4")
-
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 position = Vector2(682, 435)
 physics_material_override = SubResource("PhysicsMaterial_0tfi2")
@@ -106,6 +100,7 @@ debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 [node name="ForceArea1" type="Area2D" parent="."]
 position = Vector2(746, 436)
 script = ExtResource("9_e53da")
+AlwaysExplode = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea1"]
 position = Vector2(90, 276)

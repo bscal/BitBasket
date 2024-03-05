@@ -1,9 +1,10 @@
 using BitCup;
 using Godot;
+using TwitchLib.Api.Helix;
 
 public partial class ExplosiveArea : Area2D
 {
-	public const int BIT_THRESHOLD = 2;
+	public const int BIT_THRESHOLD = 4;
 
 	[Export]
 	public bool AlwaysExplode;
@@ -28,7 +29,20 @@ public partial class ExplosiveArea : Area2D
 			}
 			else if (GetOverlappingBodies().Count > BIT_THRESHOLD)
 			{
-				BitManager.Explode(rb);
+				int count = 0;
+				foreach(var node in GetOverlappingBodies())
+				{
+					if (node is RigidBody2D nodeRb
+						&& (nodeRb.Sleeping
+						|| nodeRb.LinearVelocity.Length() < 64))
+					{
+						++count;
+					}
+				}
+				if (count > BIT_THRESHOLD)
+				{
+					BitManager.Explode(rb);
+				}
 			}
 		}
 	}

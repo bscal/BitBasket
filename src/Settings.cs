@@ -53,20 +53,24 @@ namespace BitCup
 					&& FORCE_UPDATE)
 			{
 				data.Clear();
+
+				data.Add("ShouldAutoConnect", Variant.CreateFrom(ShouldAutoConnect));
+				data.Add("ShouldSaveBits", Variant.CreateFrom(ShouldSaveBits));
+				data.Add("ExperimentalBitParsing", Variant.CreateFrom(ExperimentalBitParsing));
 			}
 
 			DropDelay = (float)data.GetValueOrDefault("DropDelay", .25f);
-			VelocityAmp = (float)data.GetValueOrDefault("VelocityAmp", 0.5f);
+			VelocityAmp = (float)data.GetValueOrDefault("VelocityAmp", 0.50f);
 			Force1 = (float)data.GetValueOrDefault("Force1", 0);
 			Force100 = (float)data.GetValueOrDefault("Force100", 500);
 			Force1000 = (float)data.GetValueOrDefault("Force1000", 1000);
-			Force5000 = (float)data.GetValueOrDefault("Force5000", 1400);
-			Force10000 = (float)data.GetValueOrDefault("Force10000", 2400);
+			Force5000 = (float)data.GetValueOrDefault("Force5000", 1450);
+			Force10000 = (float)data.GetValueOrDefault("Force10000", 2500);
 			Mass1 = (float)data.GetValueOrDefault("Mass1", 1);
-			Mass100 = (float)data.GetValueOrDefault("Mass100", 1.5);
-			Mass1000 = (float)data.GetValueOrDefault("Mass1000", 2);
-			Mass5000 = (float)data.GetValueOrDefault("Mass5000", 2.5);
-			Mass10000 = (float)data.GetValueOrDefault("Mass10000", 3);
+			Mass100 = (float)data.GetValueOrDefault("Mass100", 1.4);
+			Mass1000 = (float)data.GetValueOrDefault("Mass1000", 1.5);
+			Mass5000 = (float)data.GetValueOrDefault("Mass5000", 1.6);
+			Mass10000 = (float)data.GetValueOrDefault("Mass10000", 1.8);
 			ShouldAutoConnect = (bool)data.GetValueOrDefault("ShouldAutoConnect", false);
 			ShouldSaveBits = (bool)data.GetValueOrDefault("ShouldSaveBits", false);
 			ExperimentalBitParsing = (bool)data.GetValueOrDefault("ExperimentalBitParsing", false);
@@ -142,17 +146,29 @@ namespace BitCup
 								} break;
 							case ("int"):
 								{
-									int value = int.Parse(lineSplit[4]);
+									int value = 0;
+									if (int.TryParse(lineSplit[4], out int result))
+									{
+										value = result;
+									}
 									res.Data.Add(name, value);
 								} break;
 							case ("float"):
 								{
-									float value = float.Parse(lineSplit[4]);
+									float value = 0;
+									if (float.TryParse(lineSplit[4], out float result))
+									{
+										value = result;
+									}
 									res.Data.Add(name, value);
 								} break;
 							case ("bool"):
 								{
-									bool value = bool.Parse(lineSplit[4]);
+									bool value = false;
+									if (bool.TryParse(lineSplit[4], out bool result))
+									{
+										value = result;
+									}
 									res.Data.Add(name, value);
 								} break;
 							default:

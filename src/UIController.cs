@@ -324,7 +324,13 @@ public partial class UIController : Node
 		BtnResetSettings = GetNode<Button>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/HBoxContainer/ResetButton");
 		BtnResetSettings.Pressed += () =>
 		{
-			BitManager.Settings.SetValuesOrDefault(new Godot.Collections.Dictionary<string, Variant>());
+			var data = new Godot.Collections.Dictionary<string, Variant>();
+			data.Add("ShouldAutoConnect", Variant.CreateFrom(BitManager.Settings.ShouldAutoConnect));
+			data.Add("ShouldSaveBits", Variant.CreateFrom(BitManager.Settings.ShouldSaveBits));
+			data.Add("ExperimentalBitParsing", Variant.CreateFrom(BitManager.Settings.ExperimentalBitParsing));
+			BitManager.Settings.SetValuesOrDefault(data);
+			BitManager.Settings.Save();
+
 			SliderDropDelay.Value = BitManager.Settings.DropDelay;
 			SliderVelocityAmp.Value = BitManager.Settings.VelocityAmp;
 			SliderForce1.Value = BitManager.Settings.Force1;
@@ -332,7 +338,9 @@ public partial class UIController : Node
 			SliderForce1000.Value = BitManager.Settings.Force1000;
 			SliderForce5000.Value = BitManager.Settings.Force5000;
 			SliderForce10000.Value = BitManager.Settings.Force10000;
-			BitManager.Settings.Save();
+			CheckBoxAutoConnect.ButtonPressed = BitManager.Settings.ShouldAutoConnect;
+			CheckBoxCheckBoxSaveBits.ButtonPressed = BitManager.Settings.ShouldSaveBits;
+			CheckBoxExperimentalBitParsing.ButtonPressed = BitManager.Settings.ExperimentalBitParsing;
 		};
 
 		PanelUpdateAvailable = GetNode<Control>("/root/Base/PanelUpdateAvailable");
