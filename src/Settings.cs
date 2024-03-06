@@ -39,6 +39,23 @@ namespace BitCup
 		{
 			SettingsResult res = BitCup.Settings.Parse("settings");
 
+			bool hasVersion = res.Data.TryGetValue("Version", out Variant version);
+			if (!hasVersion || ((int)version < VERSION && FORCE_UPDATE))
+			{
+				// Saves persistent settings to reload because force update will
+				// reset values to defaults.
+
+				ShouldAutoConnect = (bool)res.Data.GetValueOrDefault("ShouldAutoConnect", false);
+				ShouldSaveBits = (bool)res.Data.GetValueOrDefault("ShouldSaveBits", false);
+				ExperimentalBitParsing = (bool)res.Data.GetValueOrDefault("ExperimentalBitParsing", false);
+
+				res.Data.Clear();
+
+				res.Data.Add("ShouldAutoConnect", Variant.CreateFrom(ShouldAutoConnect));
+				res.Data.Add("ShouldSaveBits", Variant.CreateFrom(ShouldSaveBits));
+				res.Data.Add("ExperimentalBitParsing", Variant.CreateFrom(ExperimentalBitParsing));
+			}
+
 			SetValuesOrDefault(res.Data);
 
 			Save();
@@ -48,24 +65,13 @@ namespace BitCup
 
 		public void SetValuesOrDefault(Godot.Collections.Dictionary<string, Variant> data)
 		{
-			if (data.TryGetValue("Version", out Variant version)
-					&& (int)version < VERSION
-					&& FORCE_UPDATE)
-			{
-				data.Clear();
-
-				data.Add("ShouldAutoConnect", Variant.CreateFrom(ShouldAutoConnect));
-				data.Add("ShouldSaveBits", Variant.CreateFrom(ShouldSaveBits));
-				data.Add("ExperimentalBitParsing", Variant.CreateFrom(ExperimentalBitParsing));
-			}
-
 			DropDelay = (float)data.GetValueOrDefault("DropDelay", .25f);
 			VelocityAmp = (float)data.GetValueOrDefault("VelocityAmp", 0.50f);
 			Force1 = (float)data.GetValueOrDefault("Force1", 0);
-			Force100 = (float)data.GetValueOrDefault("Force100", 500);
-			Force1000 = (float)data.GetValueOrDefault("Force1000", 1000);
-			Force5000 = (float)data.GetValueOrDefault("Force5000", 1450);
-			Force10000 = (float)data.GetValueOrDefault("Force10000", 2500);
+			Force100 = (float)data.GetValueOrDefault("Force100", 0);
+			Force1000 = (float)data.GetValueOrDefault("Force1000", 0);
+			Force5000 = (float)data.GetValueOrDefault("Force5000", 0);
+			Force10000 = (float)data.GetValueOrDefault("Force10000", 0);
 			Mass1 = (float)data.GetValueOrDefault("Mass1", 1);
 			Mass100 = (float)data.GetValueOrDefault("Mass100", 1.4);
 			Mass1000 = (float)data.GetValueOrDefault("Mass1000", 1.5);

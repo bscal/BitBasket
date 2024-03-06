@@ -1,6 +1,5 @@
 using BitCup;
 using Godot;
-using System.Runtime.CompilerServices;
 
 public partial class UIController : Node
 {
@@ -19,6 +18,7 @@ public partial class UIController : Node
 	private Label LabelDebugChannel;
 	private Label LabelDebugBitsInArea;
 	private Button ButtonDebugReload;
+	private Button ButtonDebugReconnect;
 
 	private LineEdit TextChannelName;
 	private Button BtnConnectToChannel;
@@ -152,6 +152,18 @@ public partial class UIController : Node
 			BitManager.InitBitPool();
 		};
 
+		ButtonDebugReconnect = GetNode<Button>(new NodePath(DEBUG_URL + "/ButtonDebugReconnect"));
+		Debug.Assert(ButtonDebugReconnect != null);
+		ButtonDebugReconnect.Pressed += () =>
+		{
+			if (BitManager.TwitchManager != null
+			&& BitManager.TwitchManager.Client != null
+			&& BitManager.TwitchManager.Client.IsConnected)
+			{
+				BitManager.TwitchManager.Client.Reconnect();
+			}
+		};
+
 		TextChannelName = GetNode<LineEdit>(new NodePath(UI_URL + "TextChannelName"));
 		Debug.Assert(TextChannelName != null);
 		TextChannelName.TextChanged += TextChannelName_OnTextChanged;
@@ -167,6 +179,7 @@ public partial class UIController : Node
 		BtnConnectToChannel.Pressed += () =>
 		{
 			UpdateValues();
+
 			BitManager.TwitchManager.ValidateThanFetchOrConnect(BitManager.User);
 		};
 

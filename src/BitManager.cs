@@ -1,6 +1,5 @@
 using BitCup;
 using Godot;
-using System;
 using System.Collections.Generic;
 
 public enum State
@@ -470,22 +469,22 @@ public partial class BitManager : Node2D
 						{
 							case BitTypes.Bit100:
 								{
-									force = Settings.Force100;
+									force = 500 + Settings.Force100;
 									break;
 								}
 							case BitTypes.Bit1000:
 								{
-									force = Settings.Force1000;
+									force = 1000 + Settings.Force1000;
 									break;
 								}
 							case BitTypes.Bit5000:
 								{
-									force = Settings.Force5000;
+									force = 1450 + Settings.Force5000;
 									break;
 								}
 							case BitTypes.Bit10000:
 								{
-									force = Settings.Force10000;
+									force = 2500 + Settings.Force10000;
 									break;
 								}
 							default:

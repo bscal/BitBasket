@@ -25,6 +25,8 @@ namespace BitCup
 
 		string OAuthBuffer;
 
+		bool HasAttemptedToReconnect;
+
 		public TwitchManager(BitManager bitManager)
 		{
 			Debug.Assert(bitManager != null);
@@ -222,12 +224,17 @@ namespace BitCup
 				return false;
 			}
 
-			BitManager.User = user;
+			// Client may not be initialized here
+            if (Client != null && Client.IsConnected)
+            {
+				Client.Disconnect();
+            }
+
+            BitManager.User = user;
 
 			const string URL = "https://id.twitch.tv/oauth2/validate";
 			string[] headers = new string[1];
 			headers[0] = "Authorization: OAuth " + BitManager.User.OAuth;
-
 
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
@@ -276,21 +283,23 @@ namespace BitCup
 
 			ConnectionCredentials credentials = new ConnectionCredentials(user.Username, user.OAuth);
 
-			var clientOptions = new ClientOptions
-			{
-				MessagesAllowedInPeriod = 750,
-				ThrottlingPeriod = TimeSpan.FromSeconds(30)
-			};
+			ClientOptions clientOptions = new ClientOptions();
+			clientOptions.MessagesAllowedInPeriod = 750;
+			clientOptions.ThrottlingPeriod = TimeSpan.FromSeconds(30);
+			clientOptions.ReconnectionPolicy = new ReconnectionPolicy(6_000, maxAttempts: 10);
 
 			WebSocketClient customClient = new WebSocketClient(clientOptions);
 			Client = new TwitchClient(customClient);
 			Client.Initialize(credentials, "channel");
 
 			Client.OnConnected += Client_OnConnected;
-			Client.OnMessageReceived += Client_OnMessageReceived;
+			Client.OnDisconnected += Client_OnDisconnected;
+			Client.OnConnectionError += Client_OnConnectionError;
 			Client.OnError += Client_OnError;
-
-			Client.OnJoinedChannel += Client_OnJoinedChannel;
+#if DEBUG
+			Client.OnLog += Client_OnLog;
+#endif
+			Client.OnMessageReceived += Client_OnMessageReceived;
 
 			if (!Client.Connect())
 			{
@@ -331,21 +340,29 @@ namespace BitCup
 			return true;
 		}
 
-
-		private void Client_OnJoinedChannel(object sender, OnJoinedChannelArgs e)
-		{
-			GD.Print("Joined Channel: " +  e.Channel);
-		}
-
 		private void Client_OnConnected(object sender, OnConnectedArgs e)
 		{
-			GD.Print(e.BotUsername + " connected!");
-			GD.Print(e.AutoJoinChannel);
+			Debug.LogInfo($"Connected, {0}", e.BotUsername);
+		}
+
+		private void Client_OnDisconnected(object sender, OnDisconnectedEventArgs e)
+		{
+			Debug.LogInfo("Disconnected");
+		}
+
+		private void Client_OnConnectionError(object sender, OnConnectionErrorArgs e)
+		{
+			Debug.LogErr($"Connection Error: {0}", e.Error.Message);
 		}
 
 		private void Client_OnError(object sender, OnErrorEventArgs e)
 		{
-			GD.PrintErr(e.Exception.Message);
+			Debug.LogErr($"TwitchLib Error: {0}", e.Exception.Message);
+		}
+
+		private void Client_OnLog(object sender, OnLogArgs e)
+		{
+			Debug.LogInfo(e.Data);
 		}
 
 		private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
@@ -401,7 +418,21 @@ namespace BitCup
 
 		private void Client_OnRequestCompleted(long result, long responseCode, string[] headers, byte[] body)
 		{
-			if (responseCode == 200)
+			if (result == (long)HttpRequest.Result.Timeout
+				|| result == (long)HttpRequest.Result.ConnectionError
+				|| result == (long)HttpRequest.Result.CantConnect
+				|| result == (long)HttpRequest.Result.CantResolve)
+			{
+				// We attempted 1 reconnect if we orginally failed to connect.
+				if (!HasAttemptedToReconnect)
+				{
+					HasAttemptedToReconnect = true;
+					ValidateThanFetchOrConnect(BitManager.User);
+					return;
+				}
+			}
+
+			if (result == (long)HttpRequest.Result.Success && responseCode == 200)
 			{
 				Debug.Assert(!string.IsNullOrEmpty(BitManager.User.Username));
 				Debug.Assert(!string.IsNullOrEmpty(BitManager.User.OAuth));
@@ -451,7 +482,6 @@ namespace BitCup
 			else
 			{
 				GD.PushError("Unknown response code");
-				FetchNewOAuth();
 			}
 		}
 	}
