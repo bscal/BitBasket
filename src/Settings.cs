@@ -15,7 +15,7 @@ namespace BitCup
 
 	public struct Settings
 	{
-		public const int VERSION = 1;
+		public const int VERSION = 2;
 		public const bool FORCE_UPDATE = true;
 
 		public float DropDelay;

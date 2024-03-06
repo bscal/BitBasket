@@ -51,9 +51,9 @@ public struct User
 public partial class BitManager : Node2D
 {
 	public const int VersionMajor = 0;
-	public const int VersionMinor = 3;
+	public const int VersionMinor = 4;
 
-	public const int VersionBitSerialization = 1;
+	public const int VersionBitSerialization = 2;
 
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
