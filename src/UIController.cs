@@ -20,6 +20,8 @@ public partial class UIController : Node
 	private Button ButtonDebugReload;
 	private Button ButtonDebugReconnect;
 
+	private Button BtnHideUI;
+
 	private LineEdit TextChannelName;
 	private Button BtnConnectToChannel;
 
@@ -70,6 +72,24 @@ public partial class UIController : Node
 	{
 		BitManager = GetNode<BitManager>(new NodePath("../BitManager"));
 		Debug.Assert(BitManager != null);
+
+		BtnHideUI = GetNode<Button>(UI_URL + "BtnHideUI");
+		Debug.Assert(BtnHideUI != null);
+		BtnHideUI.Pressed += () =>
+		{
+			
+			VBoxContainer container = GetNode<VBoxContainer>("../Container/UI");
+			if (container != null)
+			{
+				foreach (var child in container.GetChildren())
+				{
+					if (child is Control childControl && child.Name != "BtnHideUI")
+					{
+						childControl.Visible = !childControl.Visible;
+					}
+				}
+			}
+		};
 
 		LabelStatus = GetNode<Label>(new NodePath(UI_URL + "PanelContainer/MarginContainer/LabelStatus"));
 		Debug.Assert(LabelStatus != null);
@@ -397,12 +417,16 @@ public partial class UIController : Node
 		{
 			LabelStatus.Text = "Status: Connected";
 			LabelStatus.AddThemeColorOverride("font_color", Colors.Green);
+			BtnHideUI.AddThemeColorOverride("font_color", Colors.Green);
 		}
 		else
 		{
 			LabelStatus.Text = "Status: Not Connected";
 			LabelStatus.AddThemeColorOverride("font_color", Colors.Red);
+			BtnHideUI.AddThemeColorOverride("font_color", Colors.Red);
 		}
+
+		BtnHideUI.FocusMode = Control.FocusModeEnum.None;
 
 		if (DebugUI.Visible)
 		{

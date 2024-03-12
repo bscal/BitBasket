@@ -221,9 +221,21 @@ offset_left = 4.0
 offset_top = 4.0
 offset_right = 185.0
 offset_bottom = 245.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
 
 [node name="UI" type="VBoxContainer" parent="Container"]
+custom_minimum_size = Vector2(200, 400)
 layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="BtnHideUI" type="Button" parent="Container/UI"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+text = "="
 
 [node name="PanelContainer" type="PanelContainer" parent="Container/UI"]
 layout_mode = 2
@@ -265,14 +277,20 @@ text = "Auto Connect"
 layout_mode = 2
 text = "Save Bits on Close"
 
+[node name="CheckBoxExperimentalBitParsing" type="CheckBox" parent="Container/UI/Bools"]
+layout_mode = 2
+tooltip_text = "Seperate each cheer inside of a message,
+instead of using total bits. For example,
+\"cheer50, cheer25, cheer25\" would be a
+100bit cheer with this turned OFF, but will
+be 50bits, 25bits, and another 25bits, if
+turned ON."
+text = "Use individual Cheers"
+
 [node name="CheckBoxShowDebug" type="CheckBox" parent="Container/UI/Bools"]
 layout_mode = 2
 text = "Show Debug
 "
-
-[node name="CheckBoxExperimentalBitParsing" type="CheckBox" parent="Container/UI/Bools"]
-layout_mode = 2
-text = "Experimental Parsing"
 
 [node name="BtnOpenSettings" type="Button" parent="Container/UI"]
 layout_mode = 2

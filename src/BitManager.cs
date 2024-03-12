@@ -243,6 +243,11 @@ public partial class BitManager : Node2D
 
 			default: break;
 		}
+
+		if (DisplayServer.WindowGetMode(0) == DisplayServer.WindowMode.Minimized)
+		{
+			DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed, 0);
+		}
 	}
 
 	public override void _Notification(int what)
@@ -506,6 +511,8 @@ public partial class BitManager : Node2D
 								bitRB.ApplyImpulse(impulse);
 							}
 						}
+
+						rb.ApplyImpulse(Vector2.Down * 300.0f);
 
 						break;
 					}
