@@ -17,7 +17,7 @@ namespace BitCup
 #if DEBUG
 			if (!(expr))
 			{
-				GD.PrintErr("Assertion failed.");
+				GD.PushError("Assertion failed.");
 				throw new ApplicationException(msg);
 			} 
 #endif
@@ -42,6 +42,9 @@ namespace BitCup
 			GD.PrintRaw("[ Error ] ");
 			GD.Print(string.Format(msg, args));
 		}
-
+		public static void Error(string msg, params object[] args)
+		{
+			GD.PushError("[ Error ] " + string.Format(msg, args));
+		}
 	}
 }

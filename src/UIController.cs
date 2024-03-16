@@ -27,8 +27,9 @@ public partial class UIController : Node
 
 	private CheckBox CheckBoxAutoConnect;
 	private CheckBox CheckBoxCheckBoxSaveBits;
-	private CheckBox CheckBoxShowDebug;
 	private CheckBox CheckBoxExperimentalBitParsing;
+	private CheckBox CheckBoxCombineBits;
+	private CheckBox CheckBoxShowDebug;
 
 	private Button BtnSaveSettings;
 	private Button BtnResetSettings;
@@ -63,6 +64,11 @@ public partial class UIController : Node
 	private Button BtnCloseUpdateAvailable;
 
 	private bool HasAlertedOfUpdate;
+
+	private LineEdit LineEditFillTheCupBits;
+	private LineEdit LineEditFillTheCupCost;
+	private LineEdit LineEditFillTheCupCooldown;
+	private Button ButtonFillTheCupCreateUpdate;
 
 	private const string UI_URL = "../Container/UI/";
 	private const string DEBUG_URL = "../Container2/DebugUI/";
@@ -123,6 +129,14 @@ public partial class UIController : Node
 		CheckBoxExperimentalBitParsing.Pressed += () =>
 		{
 			BitManager.Settings.ExperimentalBitParsing = !BitManager.Settings.ExperimentalBitParsing;
+		};
+
+		CheckBoxCombineBits = GetNode<CheckBox>(UI_URL + "Bools/CheckBoxCombineBits");
+		Debug.Assert(CheckBoxCombineBits != null);
+		CheckBoxCombineBits.ButtonPressed = BitManager.Settings.CombineBits;
+		CheckBoxCombineBits.Pressed += () =>
+		{
+			BitManager.Settings.CombineBits = !BitManager.Settings.CombineBits;
 		};
 
 		DebugUI = GetNode<BoxContainer>(new NodePath(DEBUG_URL));
@@ -382,6 +396,40 @@ public partial class UIController : Node
 
 		BtnCloseUpdateAvailable = GetNode<Button>("/root/Base/PanelUpdateAvailable/PanelContainer/VBoxContainer/CloseUpdateAvailable");
 		BtnCloseUpdateAvailable.Pressed += () => { PanelUpdateAvailable.Visible = false; };
+
+		LineEditFillTheCupBits = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupBits/LineEdit");
+		Debug.Assert(LineEditFillTheCupBits != null);
+		LineEditFillTheCupBits.Text = BitManager.Settings.FillTheCupBits.ToString();
+		LineEditFillTheCupBits.TextChanged += (text) =>
+		{
+			BitManager.Settings.FillTheCupBits = int.Parse(text);
+			BitManager.Settings.Save();
+		};
+
+		LineEditFillTheCupCost = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupCost/LineEdit");
+		Debug.Assert(LineEditFillTheCupCost != null);
+		LineEditFillTheCupCost.Text = BitManager.Settings.FillTheCupCost.ToString();
+		LineEditFillTheCupCost.TextChanged += (text) =>
+		{
+			BitManager.Settings.FillTheCupCost = int.Parse(text);
+			BitManager.Settings.Save();
+		};
+
+		LineEditFillTheCupCooldown = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupCooldown/LineEdit");
+		Debug.Assert(LineEditFillTheCupCooldown != null);
+		LineEditFillTheCupCooldown.Text = BitManager.Settings.FillTheCupCooldown.ToString();
+		LineEditFillTheCupCooldown.TextChanged += (text) =>
+		{
+			BitManager.Settings.FillTheCupCooldown = int.Parse(text);
+			BitManager.Settings.Save();
+		};
+
+		ButtonFillTheCupCreateUpdate = GetNode<Button>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupButton");
+		Debug.Assert(ButtonFillTheCupCreateUpdate != null);
+		ButtonFillTheCupCreateUpdate.Pressed += () =>
+		{
+		};
+
 	}
 
 	private void UpdateSettings()

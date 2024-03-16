@@ -6,6 +6,7 @@ public enum State
 {
 	PreStart,
 	OAuth,
+	WaitValidating,
 	Running
 }
 
@@ -30,12 +31,14 @@ public struct BitOrder
 public struct BitState
 {
 	public int Index;
+	public short BitPower;
 	public bool HasExploded;
 	public BitTypes Type;
 
-	public BitState(int index, BitTypes type)
+	public BitState(int index, short bitPower, BitTypes type)
 	{
 		Index = index;
+		BitPower = bitPower;
 		HasExploded = false;
 		Type = type;
 	}
@@ -45,7 +48,7 @@ public struct User
 {
 	public string Username;
 	public string OAuth;
-	public string UserId;
+	public string BroadcasterId;
 }
 
 public partial class BitManager : Node2D
@@ -53,7 +56,7 @@ public partial class BitManager : Node2D
 	public const int VersionMajor = 0;
 	public const int VersionMinor = 4;
 
-	public const int VersionBitSerialization = 2;
+	public const int VersionBitSerialization = 3;
 
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
@@ -85,11 +88,13 @@ public partial class BitManager : Node2D
 	public List<BitOrder> BitOrders = new List<BitOrder>(128);
 
 	public TwitchManager TwitchManager;
+	public TwitchAPI TwitchAPI;
 	public State State;
 	public User User;
 	public Settings Settings;
 	public Vector2 SpawnPosition;
 	public bool IsUpdateAvailable;
+	public bool IsReady;
 
 	private float Timer;
 
@@ -97,9 +102,20 @@ public partial class BitManager : Node2D
 	{
 		Engine.MaxFps = 60;
 
+		string logFileDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "logs");
+		string logFilePath = System.IO.Path.Combine(logFileDir, "bitbucket.log");
+		if (!System.IO.Directory.Exists(logFileDir))
+		{
+			System.IO.Directory.CreateDirectory(logFileDir);
+		}
+		ProjectSettings.SetSetting("debug/file_logging/log_path", logFilePath);
+		ProjectSettings.SetSetting("debug/file_logging/enable_file_logging", true);
+		ProjectSettings.SetSetting("debug/file_logging/enable_file_logging.pc", true);
+
 		State = State.PreStart;
 
 		TwitchManager = new TwitchManager(this);
+		TwitchAPI = new TwitchAPI(this);
 
 		Config.Load(this);
 
@@ -113,7 +129,7 @@ public partial class BitManager : Node2D
 		Node2D spawnNode = GetNode<Node2D>("./SpawnPosition");
 		if (spawnNode == null)
 		{
-			GD.PrintErr("No SpawnNode found under BitManager");
+			Debug.Error("No SpawnNode found under BitManager");
 			return;
 		}
 
@@ -128,9 +144,11 @@ public partial class BitManager : Node2D
 		InitBitPool();
 		if (Settings.ShouldSaveBits && LoadBitNodes())
 		{
-			GD.Print("GameState loaded successfully");
+			Debug.LogInfo("GameState loaded successfully");
 		}
 		CheckForUpdates();
+
+		Debug.LogInfo("BitManager ready!");
 	}
 
 	private void CheckForUpdates()
@@ -220,15 +238,23 @@ public partial class BitManager : Node2D
 		{
 			case (State.PreStart):
 				{
-				}
-				break;
+				} break;
 			case (State.OAuth):
 				{
 					TwitchManager.OAuthServerUpdate();
-				}
-				break;
+				} break;
+			case (State.WaitValidating):
+				{
+					if (IsReady)
+					{
+						Debug.LogInfo("BitBucket is now fully running!");
+						State = State.Running;
+					}
+				} break;
 			case (State.Running):
 				{
+					TwitchAPI.UpdateEventServer((float)delta);
+
 					Timer += (float)delta;
 					if (Timer > Settings.DropDelay)
 					{
@@ -302,7 +328,7 @@ public partial class BitManager : Node2D
 		BitOrders.Add(bitOrder);
 	}
 
-	private int SpawnNode(BitTypes type, Vector2 spawnPos)
+	private int SpawnNode(BitTypes type, Vector2 spawnPos, short bitPower)
 	{
 		int idx;
 		do
@@ -385,7 +411,7 @@ public partial class BitManager : Node2D
 		SpriteCache[idx].Show();
 
 		BitStatesSparse[idx] = BitStatesDenseCount;
-		BitStatesDense[BitStatesDenseCount] = new BitState(idx, type);
+		BitStatesDense[BitStatesDenseCount] = new BitState(idx, bitPower, type);
 		++BitStatesDenseCount;
 
 		return BitStatesSparse[idx];
@@ -398,8 +424,19 @@ public partial class BitManager : Node2D
 		{
 			if (order.BitAmounts[i] > 0)
 			{
-				--order.BitAmounts[i];
-				SpawnNode((BitTypes)i, SpawnPosition);
+				short bitPower;
+				if (Settings.CombineBits && i != (int)BitTypes.Bit1)
+				{
+					bitPower = order.BitAmounts[i];
+					order.BitAmounts[i] = 0;
+				}
+				else
+				{
+					bitPower = 1;
+					--order.BitAmounts[i];
+				}
+
+				SpawnNode((BitTypes)i, SpawnPosition, bitPower);
 
 				// If last bit type to check and 0
 				if (i == (int)BitTypes.MaxBitTypes - 1 && order.BitAmounts[i] == 0)
@@ -497,6 +534,15 @@ public partial class BitManager : Node2D
 									force = 0;
 									break;
 								}
+						}
+
+						if (BitStatesDense[i].BitPower > 1)
+						{
+							// Note:	cheer900 is around 1.9 power max
+							//			cheer4000 is 1.4 power max
+							// cheer5000 cannot increase.
+							// cheer10000 doesn't scale well.
+							force += Mathf.Lerp(0, force, (float)BitStatesDense[i].BitPower / 10);
 						}
 
 						Vector2 velocityForce = Vector2.Up * (rb.LinearVelocity.Y * Settings.VelocityAmp);
@@ -611,8 +657,11 @@ public partial class BitManager : Node2D
 			{
 				BitTypes type = (BitTypes)((int)nodeData["BitType"]);
 				Vector2 pos = new Vector2((float)nodeData["PosX"], (float)nodeData["PosY"]);
-				int denseIdx = SpawnNode(type, pos);
-				BitStatesDense[denseIdx].HasExploded = (bool)nodeData["HasExploded"];
+				short bitPower = (short)nodeData.GetValueOrDefault("BitPower", 1);
+				bool hasExploded = (bool)nodeData["HasExploded"];
+
+				int denseIdx = SpawnNode(type, pos, bitPower);
+				BitStatesDense[denseIdx].HasExploded = hasExploded;
 			}
 		}
 		return true;

@@ -31,9 +31,16 @@ namespace BitCup
 		public float Mass5000;
 		public float Mass10000;
 
+		public string FillTheCupTitle;
+		public int FillTheCupBits;
+		public int FillTheCupCost;
+		public int FillTheCupCooldown;
+		public bool FillTheCupPerStream;
+
 		public bool ShouldAutoConnect;
 		public bool ShouldSaveBits;
 		public bool ExperimentalBitParsing;
+		public bool CombineBits;
 
 		public void Reload()
 		{
@@ -48,19 +55,21 @@ namespace BitCup
 				ShouldAutoConnect = (bool)res.Data.GetValueOrDefault("ShouldAutoConnect", false);
 				ShouldSaveBits = (bool)res.Data.GetValueOrDefault("ShouldSaveBits", false);
 				ExperimentalBitParsing = (bool)res.Data.GetValueOrDefault("ExperimentalBitParsing", false);
+				CombineBits = (bool)res.Data.GetValueOrDefault("CombineBits", false);
 
 				res.Data.Clear();
 
 				res.Data.Add("ShouldAutoConnect", Variant.CreateFrom(ShouldAutoConnect));
 				res.Data.Add("ShouldSaveBits", Variant.CreateFrom(ShouldSaveBits));
 				res.Data.Add("ExperimentalBitParsing", Variant.CreateFrom(ExperimentalBitParsing));
+				res.Data.Add("CombineBits", Variant.CreateFrom(CombineBits));
 			}
 
 			SetValuesOrDefault(res.Data);
 
 			Save();
 
-			Debug.LogInfo("Settings reloaded");
+			Debug.LogInfo("(SETTINGS) Settings reloaded");
 		}
 
 		public void SetValuesOrDefault(Godot.Collections.Dictionary<string, Variant> data)
@@ -80,6 +89,12 @@ namespace BitCup
 			ShouldAutoConnect = (bool)data.GetValueOrDefault("ShouldAutoConnect", false);
 			ShouldSaveBits = (bool)data.GetValueOrDefault("ShouldSaveBits", false);
 			ExperimentalBitParsing = (bool)data.GetValueOrDefault("ExperimentalBitParsing", false);
+			CombineBits = (bool)data.GetValueOrDefault("CombineBits", false);
+			FillTheCupTitle = (string)data.GetValueOrDefault("FillTheCupTitle", "Fill The Cup");
+			FillTheCupBits = (int)data.GetValueOrDefault("FillTheCupBits", 10);
+			FillTheCupCost = (int)data.GetValueOrDefault("FillTheCupCost", 1000);
+			FillTheCupCooldown = (int)data.GetValueOrDefault("FillTheCupCooldown", 0);
+			FillTheCupPerStream = (bool)data.GetValueOrDefault("FillTheCupPerStream", false); 
 		}
 
 		public void Save()
@@ -101,12 +116,18 @@ namespace BitCup
 			{ "Mass10000", Variant.CreateFrom(Mass10000) },
 			{ "ShouldAutoConnect", Variant.CreateFrom(ShouldAutoConnect) },
 			{ "ShouldSaveBits", Variant.CreateFrom(ShouldSaveBits) },
-			{ "ExperimentalBitParsing", Variant.CreateFrom(ExperimentalBitParsing) }
+			{ "ExperimentalBitParsing", Variant.CreateFrom(ExperimentalBitParsing) },
+			{ "CombineBits", Variant.CreateFrom(CombineBits) },
+			{ "FillTheCupTitle", Variant.CreateFrom(FillTheCupTitle) },
+			{ "FillTheCupBits", Variant.CreateFrom(FillTheCupBits) },
+			{ "FillTheCupCost", Variant.CreateFrom(FillTheCupCost) },
+			{ "FillTheCupCooldown", Variant.CreateFrom(FillTheCupCooldown) },
+			{ "FillTheCupPerStream", Variant.CreateFrom(FillTheCupPerStream) },
 		};
 
 			BitCup.Settings.Write("settings", res);
 
-			Debug.LogInfo("Settings Saved");
+			Debug.LogInfo("(SETTINGS) Settings saved");
 		}
 
 		public static SettingsResult Parse(string filename)
@@ -121,7 +142,7 @@ namespace BitCup
 			res.WasFound = File.Exists(path);
 			if (res.WasFound)
 			{
-				GD.Print("Script found");
+				Debug.LogInfo("Script found");
 
 				string[] lines = File.ReadAllLines(path);
 
@@ -187,7 +208,7 @@ namespace BitCup
 			}
 			else
 			{
-				GD.Print("Script not found!");
+				Debug.Error("Script not found");
 			}
 
 			return res;

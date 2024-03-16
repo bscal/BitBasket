@@ -19,7 +19,7 @@ namespace BitCup
 
 			if (File.Exists(path))
 			{
-				GD.Print("Config found");
+				Debug.LogInfo("(CONFIG) Config found");
 
 				string[] lines = File.ReadAllLines(path);
 				foreach (string line in lines)
@@ -37,7 +37,7 @@ namespace BitCup
 			}
 			else
 			{
-				GD.Print("Config not found");
+				Debug.LogInfo("(CONFIG) Config not found");
 			}
 
 			if (bitManager.User.Username == null)

@@ -16,6 +16,11 @@ config/features=PackedStringArray("4.2", "C#", "Forward Plus")
 boot_splash/show_image=false
 config/icon="res://assets/bb_icon.png"
 
+[debug]
+
+file_logging/log_path="res://logs/bitbasket.log"
+file_logging/max_log_files=3
+
 [display]
 
 window/size/viewport_width=1600

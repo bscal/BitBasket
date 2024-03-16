@@ -287,6 +287,17 @@ be 50bits, 25bits, and another 25bits, if
 turned ON."
 text = "Use individual Cheers"
 
+[node name="CheckBoxCombineBits" type="CheckBox" parent="Container/UI/Bools"]
+layout_mode = 2
+tooltip_text = "Combine a cheer into one,
+large bit. (Normally cheer500,
+would be 5x 100bit bits. If 
+ENABLED, this would combine
+the cheer into 1x 100bit with,
+increased power. This only works,
+with bits > 1"
+text = "Combine Big Bits"
+
 [node name="CheckBoxShowDebug" type="CheckBox" parent="Container/UI/Bools"]
 layout_mode = 2
 text = "Show Debug
@@ -323,10 +334,11 @@ offset_top = 434.0
 offset_right = 52.0
 offset_bottom = 474.0
 
-[node name="AspectRatioContainer" type="AspectRatioContainer" parent="Container3"]
+[node name="AspectRatioContainer" type="PanelContainer" parent="Container3"]
 layout_mode = 2
-offset_right = 40.0
-offset_bottom = 40.0
+offset_right = 400.0
+offset_bottom = 435.0
+scale = Vector2(0.75, 0.75)
 
 [node name="Panel" type="Panel" parent="Container3/AspectRatioContainer"]
 custom_minimum_size = Vector2(400, 0)
@@ -335,6 +347,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_ilvoy")
 
 [node name="VSplitContainer" type="VSplitContainer" parent="Container3/AspectRatioContainer"]
 layout_mode = 2
+size_flags_vertical = 0
 
 [node name="Label" type="Label" parent="Container3/AspectRatioContainer/VSplitContainer"]
 layout_mode = 2
@@ -345,6 +358,8 @@ horizontal_alignment = 1
 
 [node name="Margin" type="MarginContainer" parent="Container3/AspectRatioContainer/VSplitContainer"]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
 theme_override_constants/margin_left = 2
 theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 2
@@ -524,6 +539,73 @@ min_value = -2500.0
 max_value = 2500.0
 step = 0.025
 
+[node name="FillCupBits" type="HBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="Label" type="Label" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupBits"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
+text = "Fill the Cup Bits Amount
+"
+vertical_alignment = 1
+
+[node name="LineEdit" type="LineEdit" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupBits"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "1
+"
+max_length = 16
+
+[node name="FillCupCost" type="HBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="Label" type="Label" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupCost"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
+text = "Fill the Cup Cost
+"
+vertical_alignment = 1
+
+[node name="LineEdit" type="LineEdit" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupCost"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "1
+"
+max_length = 16
+
+[node name="FillCupCooldown" type="HBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="Label" type="Label" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupCooldown"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+size_flags_horizontal = 7
+size_flags_vertical = 5
+text = "Fill the Cup Cooldown (secs)
+"
+vertical_alignment = 1
+
+[node name="LineEdit" type="LineEdit" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupCooldown"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "1
+"
+max_length = 16
+
+[node name="FillCupButton" type="Button" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+text = "Create/Update Fill the Cup Redeem"
+
 [node name="HBoxContainer" type="HBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
 layout_mode = 2
 
@@ -544,10 +626,10 @@ text = "Reset"
 [node name="PanelUpdateAvailable" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 0
-offset_left = 13.0
-offset_top = 808.0
-offset_right = 53.0
-offset_bottom = 848.0
+offset_left = 1417.0
+offset_top = 811.0
+offset_right = 1457.0
+offset_bottom = 851.0
 
 [node name="PanelContainer" type="PanelContainer" parent="PanelUpdateAvailable"]
 layout_mode = 0

@@ -2,6 +2,7 @@
 .godot/
 .vs/
 build/
+logs/
 config.txt
 settings.txt
 gamestate.save
