@@ -5,106 +5,99 @@ using static Godot.HttpClient;
 
 namespace BitCup
 {
+	public enum TwitchOAuthState
+	{
+		Unknown,
+		Valid,
+		Invalid
+	}
+
+	// Custom twitch api calls
 	public class TwitchAPI
 	{
 		BitManager BitManager;
 
+		public TwitchOAuthState OAuthState;
+
 		string FillTheCupRewardId;
 
+
+		int RequestUserRetry;
+
 		float Counter;
+		const float COUNTER_START = 5.0f;
 
 		public TwitchAPI(BitManager bitManager)
 		{
 			BitManager = bitManager;
+			FillTheCupRewardId = string.Empty;
 		}
 
 		public void UpdateEventServer(float dt)
 		{
-			Counter += dt;
-			if (Counter > 6f)
+			if (!IsOAuthValid())
 			{
-				Counter = 0;
+				BitManager.TwitchManager.FetchNewOAuth();
+				return;
+			}
 
-				RequestHypeTrain();
+			Counter -= dt;
+			if (Counter < 0.0f)
+			{
+				Counter = COUNTER_START;
+
+				CheckOAuth();
+				BitManager.TwitchManager.Client.JoinChannel(BitManager.User.Username);
 
 				if (!string.IsNullOrEmpty(FillTheCupRewardId))
-				{
 					RequestRedeemedRewards(FillTheCupRewardId);
-				}
 			}
 		}
 
-		public void RequestHypeTrain()
+		public bool IsOAuthValid()
 		{
-			string URL = $"https://api.twitch.tv/helix/hypetrain/events?broadcaster_id={BitManager.User.BroadcasterId}&first=1";
-			string[] headers = new string[]
+			if (string.IsNullOrWhiteSpace(BitManager.User.Username))
 			{
-				"Authorization: Bearer " + BitManager.User.OAuth,
-				"Client-Id: " + TwitchManager.CLIENT_ID
-			};
+				Debug.LogErr("Invalid username");
+				return false;
+			}
+
+			if (string.IsNullOrEmpty(BitManager.User.OAuth))
+			{
+				Debug.LogErr("Invalid or null OAuth token");
+				return false;
+			}
+
+			return BitManager.TwitchAPI.OAuthState == TwitchOAuthState.Valid;
+		}
+
+		public void CheckOAuth()
+		{
+			const string URL = "https://id.twitch.tv/oauth2/validate";
+			string[] headers = new string[1];
+			headers[0] = "Authorization: OAuth " + BitManager.User.OAuth;
 
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
-			request.RequestCompleted += RequestHypeTrain_RequestCompleted;
+			request.RequestCompleted += CheckOAuth_RequestCompleted;
 			request.Timeout = 5;
-			Error err = request.Request(URL, headers, Method.Get);
+			Error err = request.Request(URL, headers);
 			if (err != Error.Ok)
 			{
 				Debug.Error(err.ToString());
 			}
 		}
 
-		static string LastId = string.Empty;
-		private void RequestHypeTrain_RequestCompleted(long result, long responseCode, string[] headers, byte[] body)
+		private void CheckOAuth_RequestCompleted(long result, long responseCode, string[] headers, byte[] body)
 		{
 			if (responseCode == 200)
 			{
-				Debug.LogInfo("(HYPETRAIN) Request ok");
-				var json = new Json();
-				json.Parse(body.GetStringFromUtf8());
-				var response = json.Data.AsGodotDictionary();
-
-				if (response.TryGetValue("data", out var data)
-					 && data.AsGodotArray().Count > 0)
-				{
-					var first = data.AsGodotArray()[0].AsGodotDictionary();
-
-					if ((string)first["event_type"] == "hypetrain.end")
-					{
-						string timestamp = (string)first["event_timestamp"];
-						DateTime time = DateTime.Parse(timestamp);
-						Debug.LogDebug(timestamp + " " + time.ToString());
-						if (DateTime.Now.Subtract(time).Minutes > 15)
-						{
-							return;
-						}
-
-						var eventData = first["event_data"].AsGodotDictionary();
-
-						string eventId = (string)eventData["id"];
-						if (eventId == LastId)
-							return;
-
-						LastId = eventId;
-
-						// TODO trigger hypetrain event
-
-						int level = (int)eventData["level"];
-
-						Debug.LogInfo($"(HYPETRAIN) New HypeTrain. Level: {level}");
-					}
-				}
-				else
-				{
-					Debug.LogInfo("(HYPETRAIN) None found");
-				}
+				Debug.LogInfo("(CheckOAuth) Ok");
 			}
 			else if (responseCode == 401)
 			{
-
+				BitManager.InvalidateTwitchState();
 			}
-			else
-				Debug.LogErr("Unknown reponse " + responseCode);
 		}
 
 		public void ValidateOAuth()
@@ -115,7 +108,7 @@ namespace BitCup
 
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
-			request.RequestCompleted += Validate_RequestCompleted;
+			request.RequestCompleted += ValidateOAuth_RequestCompleted;
 			request.Timeout = 5;
 			Error err = request.Request(URL, headers);
 			if (err != Error.Ok)
@@ -124,7 +117,7 @@ namespace BitCup
 			}
 		}
 
-		private void Validate_RequestCompleted(long result, long responseCode, string[] headers, byte[] body)
+		private void ValidateOAuth_RequestCompleted(long result, long responseCode, string[] headers, byte[] body)
 		{
 			if (responseCode == 200)
 			{
@@ -142,18 +135,25 @@ namespace BitCup
 				if (!BitManager.User.Username.Equals(login))
 				{
 					Debug.LogErr("Usernames did not match");
-					BitManager.TwitchManager.OAuthState = OAuthState.Invalid;
+					OAuthState = TwitchOAuthState.Invalid;
 				}
-				else
+				else if (OAuthState != TwitchOAuthState.Valid)
 				{
+					OAuthState = TwitchOAuthState.Valid;
 					BitManager.User.BroadcasterId = user_id;
-					BitManager.TwitchManager.OAuthState = OAuthState.Valid;
+					if (BitManager.Settings.ShouldAutoConnect)
+					{
+						BitManager.TwitchManager.ConnectAndInitClient();
+					}
 				}
 			}
 			else if (responseCode == 401)
 			{
 				Debug.LogInfo("OAuth token is invalid");
-				BitManager.TwitchManager.OAuthState = OAuthState.Invalid;
+				if (BitManager.Settings.ShouldAutoConnect)
+				{
+					BitManager.TwitchManager.FetchNewOAuth();
+				}
 			}
             else
             {
@@ -173,7 +173,7 @@ namespace BitCup
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
 			request.RequestCompleted += RequestUser_RequestCompleted;
-			request.Timeout = 5;
+			request.Timeout = 10;
 			Error err = request.Request(URL, headers, Method.Get);
 			if (err != Error.Ok)
 			{
@@ -183,6 +183,20 @@ namespace BitCup
 
 		private void RequestUser_RequestCompleted(long result, long responseCode, string[] headers, byte[] body)
 		{
+			if (result == (long)HttpRequest.Result.Timeout)
+			{
+				if (RequestUserRetry <= 1)
+				{
+					++RequestUserRetry;
+					RequestUser();
+				}
+				else
+				{
+					BitManager.State = State.PreStart;
+					Debug.LogErr("(REQUEST_USER) Max retries reached!");
+				}
+            }
+
 			if (responseCode == 200)
 			{
 				var json = new Json();
@@ -196,15 +210,6 @@ namespace BitCup
 					{
 						string id = (string)data.AsGodotArray()[0].AsGodotDictionary()["id"];
 						BitManager.User.BroadcasterId = id;
-
-						if (!BitManager.IsReady)
-						{
-							BitManager.IsReady = true;
-
-							Debug.LogInfo($"User Received (Id: {id})");
-
-							BitManager.TwitchAPI.RequestGetRewards();
-						}
 					}
 					catch (Exception e)
 					{
@@ -215,6 +220,7 @@ namespace BitCup
 			else if (responseCode == 401)
 			{
 				Debug.LogErr("401 Unauthorized");
+				BitManager.InvalidateTwitchState();
 			}
 			else
 			{
@@ -265,8 +271,6 @@ namespace BitCup
 								if (wasOurReward)
 									FillTheCupRewardId = (string)obj.AsGodotDictionary()["id"];
 
-								// Creates or updates depending on if out reward was found
-								RequestCreateRewards(wasOurReward);
 								return;
 							}
 						}
@@ -287,8 +291,8 @@ namespace BitCup
 					break;
 				case 401:
 					{
-						Debug.LogInfo("Unauthorized.");
-						// TODO refresh token?
+						Debug.LogInfo("401 Unauthorized");
+						BitManager.InvalidateTwitchState();
 					}
 					break;
 				case 403:
@@ -302,13 +306,15 @@ namespace BitCup
 			}
 		}
 
-		public void RequestCreateRewards(bool shouldUpdate)
+		public void RequestCreateRewards()
 		{
 			Debug.Assert(!string.IsNullOrWhiteSpace(BitManager.User.BroadcasterId));
 			Debug.Assert(!string.IsNullOrWhiteSpace(BitManager.User.OAuth));
 
+			bool shouldUpdate = !string.IsNullOrWhiteSpace(FillTheCupRewardId);
+
 			string URL = $"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={BitManager.User.BroadcasterId}";
-			List<string> headers = new List<string>(4)
+			string[] headers = new string[]
 			{
 				$"client-id: {TwitchManager.CLIENT_ID}",
 				$"Authorization: Bearer {BitManager.User.OAuth}",
@@ -323,14 +329,12 @@ namespace BitCup
 			contents.Add("is_global_cooldown_enabled", BitManager.Settings.FillTheCupCooldown > 0);
 			contents.Add("global_cooldown_seconds", (BitManager.Settings.FillTheCupCooldown > 0) ? BitManager.Settings.FillTheCupCooldown : 100);
 
-			headers.Add(Json.Stringify(contents));
-
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
 			request.RequestCompleted += CreateRewards_OnCompleted;
 			request.Timeout = 5;
 			var method = (shouldUpdate) ? Method.Patch : Method.Post;
-			Error err = request.Request(URL, headers.ToArray(), method);
+			Error err = request.Request(URL, headers, method, Json.Stringify(contents));
 			if (err != Error.Ok)
 			{
 				Debug.Error(err.ToString());
@@ -355,7 +359,7 @@ namespace BitCup
 				case 401:
 					{
 						Debug.LogInfo("Unauthorized.");
-						// TODO refresh token?
+						BitManager.InvalidateTwitchState();
 					} break;
 				case 403:
 					{
@@ -448,7 +452,7 @@ namespace BitCup
 				URL += "?id=" + id;
 			}
 
-			List<string> headers = new List<string>()
+			string[] headers = new string[]
 			{
 				$"Client-Id: {TwitchManager.CLIENT_ID}",
 				$"Authorization: Bearer {BitManager.User.OAuth}",
@@ -457,13 +461,12 @@ namespace BitCup
 
 			var contents = new Godot.Collections.Dictionary<string, Variant>();
 			contents.Add("status", "FULFILLED");
-			headers.Add(Json.Stringify(contents));
 
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
 			request.RequestCompleted += RequestUpdateRedeems_OnCompleted;
 			request.Timeout = 5;
-			Error err = request.Request(URL, headers.ToArray(), HttpClient.Method.Patch);
+			Error err = request.Request(URL, headers, HttpClient.Method.Patch, Json.Stringify(contents));
 			if (err != Error.Ok)
 			{
 				Debug.Error(err.ToString());

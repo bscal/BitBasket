@@ -18,7 +18,6 @@ public partial class UIController : Node
 	private Label LabelDebugChannel;
 	private Label LabelDebugBitsInArea;
 	private Button ButtonDebugReload;
-	private Button ButtonDebugReconnect;
 
 	private Button BtnHideUI;
 
@@ -29,7 +28,6 @@ public partial class UIController : Node
 	private CheckBox CheckBoxCheckBoxSaveBits;
 	private CheckBox CheckBoxExperimentalBitParsing;
 	private CheckBox CheckBoxCombineBits;
-	private CheckBox CheckBoxShowDebug;
 
 	private Button BtnSaveSettings;
 	private Button BtnResetSettings;
@@ -70,6 +68,9 @@ public partial class UIController : Node
 	private LineEdit LineEditFillTheCupCooldown;
 	private Button ButtonFillTheCupCreateUpdate;
 
+	private CheckBox EnableSubBits;
+	private CheckBox EnableHypeTrainRain;
+
 	private const string UI_URL = "../Container/UI/";
 	private const string DEBUG_URL = "../Container2/DebugUI/";
 
@@ -106,6 +107,7 @@ public partial class UIController : Node
 		CheckBoxAutoConnect.Pressed += () =>
 		{
 			BitManager.Settings.ShouldAutoConnect = !BitManager.Settings.ShouldAutoConnect;
+			UpdateValues();
 		};
 
 		CheckBoxCheckBoxSaveBits = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxSaveBits"));
@@ -114,29 +116,26 @@ public partial class UIController : Node
 		CheckBoxCheckBoxSaveBits.Pressed += () =>
 		{
 			BitManager.Settings.ShouldSaveBits = !BitManager.Settings.ShouldSaveBits;
+			UpdateValues();
 		};
 
-		CheckBoxShowDebug = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxShowDebug"));
-		Debug.Assert(CheckBoxShowDebug != null);
-		CheckBoxShowDebug.Pressed += () =>
-		{
-			DebugUI.Visible = !DebugUI.Visible;
-		};
 
-		CheckBoxExperimentalBitParsing = GetNode<CheckBox>(new NodePath(UI_URL + "Bools/CheckBoxExperimentalBitParsing"));
+		CheckBoxExperimentalBitParsing = GetNode<CheckBox>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/CheckBoxExperimentalBitParsing");
 		Debug.Assert(CheckBoxExperimentalBitParsing != null);
 		CheckBoxExperimentalBitParsing.ButtonPressed = BitManager.Settings.ExperimentalBitParsing;
 		CheckBoxExperimentalBitParsing.Pressed += () =>
 		{
 			BitManager.Settings.ExperimentalBitParsing = !BitManager.Settings.ExperimentalBitParsing;
+			UpdateValues();
 		};
 
-		CheckBoxCombineBits = GetNode<CheckBox>(UI_URL + "Bools/CheckBoxCombineBits");
+		CheckBoxCombineBits = GetNode<CheckBox>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/CheckBoxCombineBits");
 		Debug.Assert(CheckBoxCombineBits != null);
 		CheckBoxCombineBits.ButtonPressed = BitManager.Settings.CombineBits;
 		CheckBoxCombineBits.Pressed += () =>
 		{
 			BitManager.Settings.CombineBits = !BitManager.Settings.CombineBits;
+			UpdateValues();
 		};
 
 		DebugUI = GetNode<BoxContainer>(new NodePath(DEBUG_URL));
@@ -186,18 +185,6 @@ public partial class UIController : Node
 			BitManager.InitBitPool();
 		};
 
-		ButtonDebugReconnect = GetNode<Button>(new NodePath(DEBUG_URL + "/ButtonDebugReconnect"));
-		Debug.Assert(ButtonDebugReconnect != null);
-		ButtonDebugReconnect.Pressed += () =>
-		{
-			if (BitManager.TwitchManager != null
-			&& BitManager.TwitchManager.Client != null
-			&& BitManager.TwitchManager.Client.IsConnected)
-			{
-				BitManager.TwitchManager.Client.Reconnect();
-			}
-		};
-
 		TextChannelName = GetNode<LineEdit>(new NodePath(UI_URL + "TextChannelName"));
 		Debug.Assert(TextChannelName != null);
 		TextChannelName.TextChanged += TextChannelName_OnTextChanged;
@@ -214,7 +201,10 @@ public partial class UIController : Node
 		{
 			UpdateValues();
 
-			BitManager.TwitchManager.ValidateThanFetchOrConnect(BitManager.User);
+			if (BitManager.TwitchAPI.IsOAuthValid())
+				BitManager.TwitchManager.ConnectAndInitClient();
+			else
+				BitManager.TwitchManager.FetchNewOAuth();
 		};
 
 		BtnClearBits = GetNode<Button>(new NodePath(UI_URL + "BtnClearBits"));
@@ -374,7 +364,6 @@ public partial class UIController : Node
 			var data = new Godot.Collections.Dictionary<string, Variant>();
 			data.Add("ShouldAutoConnect", Variant.CreateFrom(BitManager.Settings.ShouldAutoConnect));
 			data.Add("ShouldSaveBits", Variant.CreateFrom(BitManager.Settings.ShouldSaveBits));
-			data.Add("ExperimentalBitParsing", Variant.CreateFrom(BitManager.Settings.ExperimentalBitParsing));
 			BitManager.Settings.SetValuesOrDefault(data);
 			BitManager.Settings.Save();
 
@@ -388,6 +377,12 @@ public partial class UIController : Node
 			CheckBoxAutoConnect.ButtonPressed = BitManager.Settings.ShouldAutoConnect;
 			CheckBoxCheckBoxSaveBits.ButtonPressed = BitManager.Settings.ShouldSaveBits;
 			CheckBoxExperimentalBitParsing.ButtonPressed = BitManager.Settings.ExperimentalBitParsing;
+			CheckBoxCombineBits.ButtonPressed = BitManager.Settings.CombineBits;
+			EnableHypeTrainRain.ButtonPressed = BitManager.Settings.EnableHypeTrainRain;
+			EnableSubBits.ButtonPressed = BitManager.Settings.EnableSubBits;
+			LineEditFillTheCupBits.Text = BitManager.Settings.FillTheCupBits.ToString();
+			LineEditFillTheCupCooldown.Text = BitManager.Settings.FillTheCupCooldown.ToString();
+			LineEditFillTheCupCost.Text = BitManager.Settings.FillTheCupCost.ToString();
 		};
 
 		PanelUpdateAvailable = GetNode<Control>("/root/Base/PanelUpdateAvailable");
@@ -428,6 +423,25 @@ public partial class UIController : Node
 		Debug.Assert(ButtonFillTheCupCreateUpdate != null);
 		ButtonFillTheCupCreateUpdate.Pressed += () =>
 		{
+			BitManager.TwitchAPI.RequestGetRewards();
+		};
+
+		EnableSubBits = GetNode<CheckBox>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/EnableSubBits");
+		Debug.Assert(EnableSubBits != null);
+		EnableSubBits.ButtonPressed = BitManager.Settings.EnableSubBits;
+		EnableSubBits.Pressed += () => 
+		{ 
+			BitManager.Settings.EnableSubBits = !BitManager.Settings.EnableSubBits;
+			BitManager.Settings.Save();
+		};
+
+		EnableHypeTrainRain = GetNode<CheckBox>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/EnableHypeTrainRain");
+		Debug.Assert(EnableHypeTrainRain != null);
+		EnableHypeTrainRain.ButtonPressed = BitManager.Settings.EnableHypeTrainRain;
+		EnableHypeTrainRain.Pressed += () =>
+		{
+			BitManager.Settings.EnableHypeTrainRain = !BitManager.Settings.EnableHypeTrainRain;
+			BitManager.Settings.Save();
 		};
 
 	}
@@ -447,7 +461,11 @@ public partial class UIController : Node
 	private void UpdateValues()
 	{
 		BitManager.User.Username = TextChannelName.Text;
-		BitManager.Settings.ShouldAutoConnect = CheckBoxAutoConnect.ActionMode == BaseButton.ActionModeEnum.Press;
+		BitManager.Settings.ShouldAutoConnect = CheckBoxAutoConnect.ButtonPressed;
+		BitManager.Settings.ShouldSaveBits = CheckBoxCheckBoxSaveBits.ButtonPressed;
+		BitManager.Settings.CombineBits = CheckBoxCombineBits.ButtonPressed;
+		BitManager.Settings.ExperimentalBitParsing = CheckBoxExperimentalBitParsing.ButtonPressed;
+		BitManager.Settings.Save();
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -476,8 +494,10 @@ public partial class UIController : Node
 
 		BtnHideUI.FocusMode = Control.FocusModeEnum.None;
 
-		if (DebugUI.Visible)
+		if (BitManager.IsDebugEnabled)
 		{
+			DebugUI.Visible = true;
+
 			LabelDebugFPS.Text = string.Format("FPS: {0}",
 				Performance.Singleton.GetMonitor(Performance.Monitor.TimeFps));
 
@@ -498,6 +518,10 @@ public partial class UIController : Node
 			LabelDebugChannel.Text = string.Format("Channel: {0}", connectedChannel);
 
 			LabelDebugBitsInArea.Text = string.Format("BitsInCup: {0}", BitManager.CupArea.GetOverlappingBodies().Count);
+		}
+		else
+		{
+			DebugUI.Visible = false;
 		}
 	}
 

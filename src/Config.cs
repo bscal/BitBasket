@@ -1,4 +1,5 @@
 ﻿using Godot;
+using System;
 using System.IO;
 
 namespace BitCup
@@ -56,7 +57,14 @@ namespace BitCup
 				string.Format("user: {0};{1}", bitManager.User.Username, bitManager.User.OAuth),
 			};
 
-			File.WriteAllLines(path, lines);
+			try
+			{
+				File.WriteAllLines(path, lines);
+			}
+			catch (Exception ex)
+			{
+				Debug.LogDebug(ex.Message);
+			}
 		}
 
 	}
