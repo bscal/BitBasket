@@ -420,6 +420,7 @@ namespace BitCup
 
 						var rewardData = obj.AsGodotDictionary()["reward"];
 						rewardId = (string)rewardData.AsGodotDictionary()["id"];
+						BitManager.CreateOrderWithChecks(BitManager.Settings.FillTheCupBits);
 					}
 
 					RequestUpdateRedeems(rewardId, ids, true);
@@ -436,7 +437,7 @@ namespace BitCup
 
 		public void RequestUpdateRedeems(string rewardId, List<string> ids, bool areFullfilled)
 		{
-			if (string.IsNullOrEmpty(rewardId))
+			if (string.IsNullOrEmpty(FillTheCupRewardId))
 			{
 				Debug.LogErr("rewardId is null or empty");
 				return;
@@ -445,7 +446,7 @@ namespace BitCup
 			Debug.Assert(ids != null);
 
 			string URL = $"https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions" +
-				$"?broadcaster_id={BitManager.User.BroadcasterId}&reward_id={rewardId}";
+				$"?broadcaster_id={BitManager.User.BroadcasterId}&reward_id={FillTheCupRewardId}";
 
 			foreach (var id in ids)
 			{
