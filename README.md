@@ -23,7 +23,7 @@ Uses port 8080 to authorize the app.
 Setting "Save Bits on Close" to on will save the current bits when you close the app
 and load them on next start.
 
-Broadcasters and Moderators have access to !bb test <amount> and !bb rain <level> test commands.
+Broadcasters and Moderators have access to `!bb test <amount>` and `!bb rain <level>` test commands.
 
 ### Dev ###
 Here are the dependencies:
