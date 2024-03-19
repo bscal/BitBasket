@@ -18,7 +18,6 @@ namespace BitCup
 			if (!(expr))
 			{
 				GD.PushError("Assertion failed.");
-				throw new ApplicationException(msg);
 			} 
 #endif
 		}

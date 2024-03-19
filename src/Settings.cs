@@ -16,7 +16,7 @@ namespace BitCup
 	public struct Settings
 	{
 		public const int VERSION = 2;
-		public const bool FORCE_UPDATE = true;
+		public const bool FORCE_UPDATE = false;
 
 		public float DropDelay;
 		public float VelocityAmp;
@@ -36,6 +36,9 @@ namespace BitCup
 		public int FillTheCupCost;
 		public int FillTheCupCooldown;
 		public bool FillTheCupPerStream;
+
+		public bool EnableSubBits;
+		public bool EnableHypeTrainRain;
 
 		public bool ShouldAutoConnect;
 		public bool ShouldSaveBits;
@@ -94,7 +97,9 @@ namespace BitCup
 			FillTheCupBits = (int)data.GetValueOrDefault("FillTheCupBits", 10);
 			FillTheCupCost = (int)data.GetValueOrDefault("FillTheCupCost", 1000);
 			FillTheCupCooldown = (int)data.GetValueOrDefault("FillTheCupCooldown", 0);
-			FillTheCupPerStream = (bool)data.GetValueOrDefault("FillTheCupPerStream", false); 
+			FillTheCupPerStream = (bool)data.GetValueOrDefault("FillTheCupPerStream", false);
+			EnableSubBits = (bool)data.GetValueOrDefault("EnableSubBits", false);
+			EnableHypeTrainRain = (bool)data.GetValueOrDefault("EnableHypeTrainRain", false);
 		}
 
 		public void Save()
@@ -123,6 +128,8 @@ namespace BitCup
 			{ "FillTheCupCost", Variant.CreateFrom(FillTheCupCost) },
 			{ "FillTheCupCooldown", Variant.CreateFrom(FillTheCupCooldown) },
 			{ "FillTheCupPerStream", Variant.CreateFrom(FillTheCupPerStream) },
+			{ "EnableSubBits", Variant.CreateFrom(EnableSubBits) },
+			{ "EnableHypeTrainRain", Variant.CreateFrom(EnableHypeTrainRain) },
 		};
 
 			BitCup.Settings.Write("settings", res);

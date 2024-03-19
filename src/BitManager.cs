@@ -21,9 +21,16 @@ public enum BitTypes
 	MaxBitTypes
 }
 
+public enum OrderType
+{
+	Bits,
+	Rain,
+}
+
 public struct BitOrder
 {
-	public byte[] BitAmounts = new byte[(int)BitTypes.MaxBitTypes];
+	public OrderType Type = OrderType.Bits;
+	public short[] BitAmounts = new short[(int)BitTypes.MaxBitTypes];
 
 	public BitOrder() { }
 }
@@ -54,13 +61,13 @@ public struct User
 public partial class BitManager : Node2D
 {
 	public const int VersionMajor = 0;
-	public const int VersionMinor = 4;
+	public const int VersionMinor = 5;
 
 	public const int VersionBitSerialization = 3;
 
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
-	public const int MAX_BITS = 256;
+	public const int MAX_BITS = 512;
 
 	[Export]
 	public Texture Bit1Texture;
@@ -89,42 +96,56 @@ public partial class BitManager : Node2D
 
 	public TwitchManager TwitchManager;
 	public TwitchAPI TwitchAPI;
+	public EventSub EventSub;
 	public State State;
 	public User User;
 	public Settings Settings;
 	public Vector2 SpawnPosition;
 	public bool IsUpdateAvailable;
-	public bool IsReady;
+	public bool IsDebugEnabled;
 
 	private float Timer;
+
+	public void InvalidateTwitchState()
+	{
+		ResetAllState();
+		TwitchAPI.OAuthState = TwitchOAuthState.Invalid;
+	}
+
+	public void ResetAllState()
+	{
+		TwitchAPI.OAuthState = TwitchOAuthState.Unknown;
+		State = State.PreStart;
+
+		Config.Load(this);
+
+		TwitchAPI.ValidateOAuth();
+	}
 
 	public override void _Ready()
 	{
 		Engine.MaxFps = 60;
 
-		string logFileDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "logs");
-		string logFilePath = System.IO.Path.Combine(logFileDir, "bitbucket.log");
-		if (!System.IO.Directory.Exists(logFileDir))
-		{
-			System.IO.Directory.CreateDirectory(logFileDir);
-		}
-		ProjectSettings.SetSetting("debug/file_logging/log_path", logFilePath);
-		ProjectSettings.SetSetting("debug/file_logging/enable_file_logging", true);
-		ProjectSettings.SetSetting("debug/file_logging/enable_file_logging.pc", true);
+		//string logFileDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "logs");
+		//string logFilePath = System.IO.Path.Combine(logFileDir, "bitbucket.log");
+		//if (!System.IO.Directory.Exists(logFileDir))
+		//{
+		//	System.IO.Directory.CreateDirectory(logFileDir);
+		//}
+		//ProjectSettings.SetSetting("debug/file_logging/log_path", logFilePath);
+		//ProjectSettings.SetSetting("debug/file_logging/enable_file_logging", true);
+		//ProjectSettings.SetSetting("debug/file_logging/enable_file_logging.pc", true);
 
 		State = State.PreStart;
-
-		TwitchManager = new TwitchManager(this);
-		TwitchAPI = new TwitchAPI(this);
 
 		Config.Load(this);
 
 		Settings.Reload();
 
-		if (Settings.ShouldAutoConnect)
-		{
-			TwitchManager.ValidateThanFetchOrConnect(User);
-		}
+		TwitchManager = new TwitchManager(this);
+		EventSub = new EventSub(this);
+		TwitchAPI = new TwitchAPI(this);
+		TwitchAPI.ValidateOAuth();
 
 		Node2D spawnNode = GetNode<Node2D>("./SpawnPosition");
 		if (spawnNode == null)
@@ -132,15 +153,13 @@ public partial class BitManager : Node2D
 			Debug.Error("No SpawnNode found under BitManager");
 			return;
 		}
+		SpawnPosition = spawnNode.Position;
 
 		BoundsArea = GetNode<Area2D>(("../BoundsArea"));
 		BoundsArea.BodyExited += BoundsArea_OnBodyExited;
 
 		CupArea = GetNode<Area2D>("../CupArea");
 
-		SpawnPosition = spawnNode.Position;
-
-		// TODO add version check
 		InitBitPool();
 		if (Settings.ShouldSaveBits && LoadBitNodes())
 		{
@@ -219,8 +238,9 @@ public partial class BitManager : Node2D
 		for (int i = 0; i < MAX_BITS; ++i)
 		{
 			BitPool[i] = (RigidBody2D)bitScene.Instantiate();
-			BitPool[i].Position = SpawnPosition;
 			AddChild(BitPool[i]);
+			BitPool[i].Position = SpawnPosition;
+			BitPool[i].SetMeta("id", i);
 
 			SpriteCache[i] = BitPool[i].GetNode<Sprite2D>(new NodePath("./Sprite2D"));
 			Debug.Assert(SpriteCache[i] != null);
@@ -230,6 +250,34 @@ public partial class BitManager : Node2D
 			BitStatesSparse[i] = -1;
 		}
 		BitStatesDenseCount = 0;
+	}
+
+	private void ClientFullyReady()
+	{
+		Debug.LogInfo("(ClientFullyReady)");
+		Debug.LogInfo("Username = " + User.Username);
+		Debug.LogInfo("BroadcasterId = " + User.BroadcasterId);
+		Debug.LogInfo("Valid OAuth = " + TwitchAPI.IsOAuthValid());
+		Debug.LogInfo("TwitchClient = " + TwitchManager.Client.IsConnected);
+		Debug.LogInfo(" ");
+
+		if (string.IsNullOrEmpty(User.Username)
+			|| string.IsNullOrEmpty(User.OAuth)
+			|| string.IsNullOrEmpty(User.BroadcasterId))
+		{
+			Debug.Error("(ERROR) ClientFullyReady User");
+			State = State.PreStart;
+			return;
+		}
+
+		State = State.Running;
+
+		TwitchAPI.RequestGetRewards();
+
+#if DEBUG
+		// Tests
+		EventSub.TestHypeTrain();
+#endif
 	}
 
 	public override void _Process(double delta)
@@ -245,29 +293,31 @@ public partial class BitManager : Node2D
 				} break;
 			case (State.WaitValidating):
 				{
-					if (IsReady)
+					if (TwitchManager.Client != null
+						&& TwitchManager.Client.IsConnected
+						&& !string.IsNullOrEmpty(User.BroadcasterId))
 					{
-						Debug.LogInfo("BitBucket is now fully running!");
-						State = State.Running;
+						ClientFullyReady();
 					}
 				} break;
 			case (State.Running):
 				{
 					TwitchAPI.UpdateEventServer((float)delta);
+					EventSub.UpdateEvents((float)delta);
 
-					Timer += (float)delta;
-					if (Timer > Settings.DropDelay)
+					if (BitOrderProcessNext((float)delta))
 					{
-						Timer = 0;
-						if (BitOrders.Count > 0 && BitOrderProcessNext(BitOrders[0]))
-						{
-							BitOrders.RemoveAt(0);
-						}
+						BitOrders.RemoveAt(0);
 					}
 				}
 				break;
 
 			default: break;
+		}
+
+		if (Input.IsActionJustPressed("show_debug"))
+		{
+			IsDebugEnabled = !IsDebugEnabled;
 		}
 
 		if (DisplayServer.WindowGetMode(0) == DisplayServer.WindowMode.Minimized)
@@ -304,28 +354,47 @@ public partial class BitManager : Node2D
 
 	public void CreateOrderWithChecks(int amount)
 	{
-		if (amount <= 0)
-		{
-			return;
-		}
+		amount = Mathf.Clamp(amount, 1, short.MaxValue);
 
 		BitOrder bitOrder = new BitOrder();
 
-		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (byte)(amount / 10000);
+		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / 10000);
 		amount %= 10000;
 
-		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (byte)(amount / 5000);
+		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / 5000);
 		amount %= 5000;
 
-		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (byte)(amount / 1000);
+		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / 1000);
 		amount %= 1000;
 
-		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (byte)(amount / 100);
+		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / 100);
 		amount %= 100;
 
-		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (byte)(amount);
+		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (short)(amount);
 
 		BitOrders.Add(bitOrder);
+	}
+
+	public void CreateRainOrder(int level)
+	{
+		level = Mathf.Clamp(level, 1, 5);
+
+		BitOrder order = new BitOrder();
+		order.Type = OrderType.Rain;
+
+		switch (level)
+		{
+			case 1: order.BitAmounts[(int)BitTypes.Bit1] = 50; break;
+			case 2: order.BitAmounts[(int)BitTypes.Bit1] = 100; break;
+			case 3: order.BitAmounts[(int)BitTypes.Bit100] = 100; break;
+			case 4: order.BitAmounts[(int)BitTypes.Bit1000] = 100; break;
+			case 5:
+				{
+					order.BitAmounts[(int)BitTypes.Bit5000] = 100;
+					order.BitAmounts[(int)BitTypes.Bit10000] = 1;
+				} break;
+		}
+		BitOrders.Add(order);
 	}
 
 	private int SpawnNode(BitTypes type, Vector2 spawnPos, short bitPower)
@@ -350,11 +419,20 @@ public partial class BitManager : Node2D
 			BitPool[idx].GetRid(),
 			PhysicsServer2D.BodyState.LinearVelocity,
 			new Vector2((GD.Randf() * 2.0f - 1.0f) * 10.0f, 0.0f));
-	
-		PhysicsServer2D.BodySetState(
-			BitPool[idx].GetRid(),
-			PhysicsServer2D.BodyState.AngularVelocity,
-			(GD.Randf() * 2.0f - 1.0f) * 10.0f);
+
+		if (BitOrders.Count > 0)
+		{
+			float rotation;
+			if (BitOrders[0].Type == OrderType.Rain)
+				rotation = (GD.Randf() * 2.0f - 1.0f) * 32.0f;
+			else
+				rotation = (GD.Randf() * 2.0f - 1.0f) * 10.0f;
+
+			PhysicsServer2D.BodySetState(
+				BitPool[idx].GetRid(),
+				PhysicsServer2D.BodyState.AngularVelocity,
+				rotation);
+		}
 
 		BitPool[idx].ProcessMode = ProcessModeEnum.Always;
 		BitPool[idx].Freeze = false;
@@ -417,15 +495,32 @@ public partial class BitManager : Node2D
 		return BitStatesSparse[idx];
 	}
 
-	private bool BitOrderProcessNext(BitOrder order)
+	private bool BitOrderProcessNext(float dt)
 	{
+		if (BitOrders.Count == 0)
+			return false;
+
 		bool isFinished = false;
+		BitOrder order = BitOrders[0];
+
+		float delay;
+		if (order.Type == OrderType.Bits)
+			delay = Settings.DropDelay + 0.01f;
+		else
+			delay = 0.05f;
+
+		Timer += dt;
+		if (Timer < delay)
+			return false;
+
+		Timer = 0;
+
 		for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
 		{
 			if (order.BitAmounts[i] > 0)
 			{
 				short bitPower;
-				if (Settings.CombineBits && i != (int)BitTypes.Bit1)
+				if (Settings.CombineBits && i != (int)BitTypes.Bit1 && order.Type == OrderType.Bits)
 				{
 					bitPower = order.BitAmounts[i];
 					order.BitAmounts[i] = 0;
@@ -435,6 +530,9 @@ public partial class BitManager : Node2D
 					bitPower = 1;
 					--order.BitAmounts[i];
 				}
+
+				if (order.BitAmounts[i] <= 0)
+					Timer = -2;
 
 				SpawnNode((BitTypes)i, SpawnPosition, bitPower);
 
@@ -455,6 +553,10 @@ public partial class BitManager : Node2D
 				break;
 			}
 		}
+
+		if (isFinished)
+			Timer = -3;
+
 		return isFinished;
 	}
 
@@ -495,74 +597,71 @@ public partial class BitManager : Node2D
 
 	internal void Explode(RigidBody2D rb)
 	{
-		if (rb.Mass >= 1.1)
+		if (rb.HasMeta("id"))
 		{
-			for (int i = 0; i < BitStatesDenseCount; ++i)
+			int id = rb.GetMeta("id").AsInt32();
+			int idx = BitStatesSparse[id];
+			BitState state = BitStatesDense[idx];
+
+			if ((int)state.Type > (int)BitTypes.Bit1
+				&& (!state.HasExploded
+				|| rb.LinearVelocity.Y > 1024))
 			{
-				int idx = BitStatesDense[i].Index;
-				if (BitPool[idx].GetInstanceId() == rb.GetInstanceId())
+				BitStatesDense[idx].HasExploded = true;
+
+				float force;
+				switch (state.Type)
 				{
-					if (!BitStatesDense[i].HasExploded || rb.LinearVelocity.Y > 1024)
+					case BitTypes.Bit100:
+						{
+							force = 500 + Settings.Force100;
+							break;
+						}
+					case BitTypes.Bit1000:
+						{
+							force = 1000 + Settings.Force1000;
+							break;
+						}
+					case BitTypes.Bit5000:
+						{
+							force = 1450 + Settings.Force5000;
+							break;
+						}
+					case BitTypes.Bit10000:
+						{
+							force = 2500 + Settings.Force10000;
+							break;
+						}
+					default:
+						{
+							force = 0;
+							break;
+						}
+				}
+
+				if (state.BitPower > 1)
+				{
+					// Note:	cheer900 is around 1.9 power max
+					//			cheer4000 is 1.4 power max
+					// cheer5000 cannot increase.
+					// cheer10000 doesn't scale well.
+					force += Mathf.Lerp(0, force, (float)(state.BitPower) / 10);
+				}
+
+				Vector2 velocityForce = Vector2.Up * (rb.LinearVelocity.Y * Settings.VelocityAmp);
+				Vector2 impulse = Vector2.Up * force + velocityForce;
+
+				foreach (var bit in CupArea.GetOverlappingBodies())
+				{
+					if (bit is RigidBody2D bitRB
+						&& bit.GetInstanceId() != rb.GetInstanceId()
+						&& bitRB.LinearVelocity.Length() < 128)
 					{
-						BitStatesDense[i].HasExploded = true;
-
-						float force;
-						switch (BitStatesDense[i].Type)
-						{
-							case BitTypes.Bit100:
-								{
-									force = 500 + Settings.Force100;
-									break;
-								}
-							case BitTypes.Bit1000:
-								{
-									force = 1000 + Settings.Force1000;
-									break;
-								}
-							case BitTypes.Bit5000:
-								{
-									force = 1450 + Settings.Force5000;
-									break;
-								}
-							case BitTypes.Bit10000:
-								{
-									force = 2500 + Settings.Force10000;
-									break;
-								}
-							default:
-								{
-									force = 0;
-									break;
-								}
-						}
-
-						if (BitStatesDense[i].BitPower > 1)
-						{
-							// Note:	cheer900 is around 1.9 power max
-							//			cheer4000 is 1.4 power max
-							// cheer5000 cannot increase.
-							// cheer10000 doesn't scale well.
-							force += Mathf.Lerp(0, force, (float)BitStatesDense[i].BitPower / 10);
-						}
-
-						Vector2 velocityForce = Vector2.Up * (rb.LinearVelocity.Y * Settings.VelocityAmp);
-						Vector2 impulse = Vector2.Up * force + velocityForce;
-
-						foreach (var bit in CupArea.GetOverlappingBodies())
-						{
-							if (bit is RigidBody2D bitRB
-								&& bit.GetInstanceId() != rb.GetInstanceId()
-								&& bitRB.LinearVelocity.Length() < 128)
-							{
-								bitRB.ApplyImpulse(impulse);
-							}
-						}
-
-						rb.ApplyImpulse(Vector2.Down * 300.0f);
-
-						break;
+						bitRB.ApplyImpulse(impulse);
 					}
 				}
+
+				rb.ApplyImpulse(Vector2.Down * 300.0f);
 			}
 		}
 	}

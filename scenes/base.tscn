@@ -212,10 +212,6 @@ layout_mode = 2
 layout_mode = 2
 text = "Reload"
 
-[node name="ButtonDebugReconnect" type="Button" parent="Container2/DebugUI"]
-layout_mode = 2
-text = "Reconnect"
-
 [node name="Container" type="AspectRatioContainer" parent="."]
 offset_left = 4.0
 offset_top = 4.0
@@ -277,32 +273,6 @@ text = "Auto Connect"
 layout_mode = 2
 text = "Save Bits on Close"
 
-[node name="CheckBoxExperimentalBitParsing" type="CheckBox" parent="Container/UI/Bools"]
-layout_mode = 2
-tooltip_text = "Seperate each cheer inside of a message,
-instead of using total bits. For example,
-\"cheer50, cheer25, cheer25\" would be a
-100bit cheer with this turned OFF, but will
-be 50bits, 25bits, and another 25bits, if
-turned ON."
-text = "Use individual Cheers"
-
-[node name="CheckBoxCombineBits" type="CheckBox" parent="Container/UI/Bools"]
-layout_mode = 2
-tooltip_text = "Combine a cheer into one,
-large bit. (Normally cheer500,
-would be 5x 100bit bits. If 
-ENABLED, this would combine
-the cheer into 1x 100bit with,
-increased power. This only works,
-with bits > 1"
-text = "Combine Big Bits"
-
-[node name="CheckBoxShowDebug" type="CheckBox" parent="Container/UI/Bools"]
-layout_mode = 2
-text = "Show Debug
-"
-
 [node name="BtnOpenSettings" type="Button" parent="Container/UI"]
 layout_mode = 2
 text = "Settings"
@@ -330,9 +300,9 @@ text = "Clear Bits"
 layout_mode = 3
 anchors_preset = 0
 offset_left = 12.0
-offset_top = 434.0
+offset_top = 333.0
 offset_right = 52.0
-offset_bottom = 474.0
+offset_bottom = 373.0
 
 [node name="AspectRatioContainer" type="PanelContainer" parent="Container3"]
 layout_mode = 2
@@ -605,6 +575,39 @@ max_length = 16
 [node name="FillCupButton" type="Button" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
 layout_mode = 2
 text = "Create/Update Fill the Cup Redeem"
+
+[node name="EnableSubBits" type="CheckBox" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 17
+text = "Enable Sub Bits"
+
+[node name="EnableHypeTrainRain" type="CheckBox" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 17
+text = "Enable Hype Train Bit Rain"
+
+[node name="CheckBoxExperimentalBitParsing" type="CheckBox" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+tooltip_text = "Seperate each cheer inside of a message,
+instead of using total bits. For example,
+\"cheer50, cheer25, cheer25\" would be a
+100bit cheer with this turned OFF, but will
+be 50bits, 25bits, and another 25bits, if
+turned ON."
+text = "Seperate"
+
+[node name="CheckBoxCombineBits" type="CheckBox" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+tooltip_text = "Combine a cheer into one,
+large bit. (Normally cheer500,
+would be 5x 100bit bits. If 
+ENABLED, this would combine
+the cheer into 1x 100bit with,
+increased power. This only works,
+with bits > 1"
+text = "Combine Same Size Bits"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
 layout_mode = 2

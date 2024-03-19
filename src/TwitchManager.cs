@@ -6,32 +6,28 @@ using TwitchLib.Communication.Models;
 using TwitchLib.Communication.Clients;
 using Godot;
 using TwitchLib.Communication.Events;
+using TwitchLib.Client.Enums;
+using TwitchLib.Client.Exceptions;
+using System.Net;
 
 namespace BitCup
 {
-	public enum OAuthState
-	{
-		Unknown,
-		Valid,
-		Invalid
-	}
 
+	// TwitchLib and TwitchClient
 	public class TwitchManager
 	{
 		public const string CLIENT_ID = "gsqo3a59xrqob257ku9ou70u9roqzy";
-		public const string TWITCH_REDIRECT_ADDRESS = "localhost";
-		public const ushort TWITCH_REDIRECT_PORT = 8080;
+		
+		const string TWITCH_REDIRECT_ADDRESS = "localhost";
+		const ushort TWITCH_REDIRECT_PORT = 8080;
 
 		public TwitchClient Client;
 
-		public OAuthState OAuthState;
-
 		BitManager BitManager;
 
+		// Server for requesting OAuth tokens
 		TcpServer OAuthTCPServer;
-
 		StreamPeerTcp StreamPeerTcp;
-
 		string OAuthBuffer;
 
 		public TwitchManager(BitManager bitManager)
@@ -40,78 +36,114 @@ namespace BitCup
 			BitManager = bitManager;
 		}
 
-		private void ConnectAndInitClient(User user)
+		public void FetchNewOAuth()
 		{
-			if (string.IsNullOrEmpty(user.Username))
+			Debug.LogInfo("Fetching new OAuth...");
+			OAuthServerStart();
+		}
+
+		public void ConnectAndInitClient()
+		{
+			if (string.IsNullOrEmpty(BitManager.User.Username))
 			{
 				Debug.Error("user.Username is null or empty");
+				BitManager.State = State.PreStart;
 				return;
 			}
 
-			if (string.IsNullOrEmpty(user.OAuth))
+			if (string.IsNullOrEmpty(BitManager.User.OAuth))
 			{
 				Debug.LogErr("user.OAuth is null or empty");
+				BitManager.State = State.PreStart;
 				FetchNewOAuth();
 				return;
 			}
 
-			BitManager.TwitchAPI.RequestUser();
+			BitManager.State = State.WaitValidating;
+			BitManager.TwitchAPI.OAuthState = TwitchOAuthState.Valid;
 
-			ConnectionCredentials credentials = new ConnectionCredentials(user.Username, user.OAuth);
+			Config.Save(BitManager);
+
+			if (string.IsNullOrEmpty(BitManager.User.BroadcasterId))
+			{
+				BitManager.TwitchAPI.RequestUser();
+			}
+
+			ConnectionCredentials credentials = new ConnectionCredentials(
+				BitManager.User.Username,
+				BitManager.User.OAuth);
+
+			if (Client != null)
+			{
+				Client.AutoReListenOnException = false;
+				Client.DisableAutoPong = false;
+				Client.OnConnected -= Client_OnConnected;
+				Client.OnDisconnected -= Client_OnDisconnected;
+				Client.OnConnectionError -= Client_OnConnectionError;
+				Client.OnError -= Client_OnError;
+				Client.OnJoinedChannel -= Client_OnJoinedChannel;
+				Client.OnMessageReceived -= Client_OnMessageReceived;
+				Client.OnNewSubscriber -= Client_OnNewSub;
+				Client.OnReSubscriber -= Client_OnResub;
+				Client.OnGiftedSubscription -= Client_OnGiftSub;
+				#if DEBUG
+								Client.OnLog -= Client_OnLog;
+				#endif
+				Client.Disconnect();
+				Client = null;
+			}
 
 			ClientOptions clientOptions = new ClientOptions();
 			clientOptions.MessagesAllowedInPeriod = 750;
 			clientOptions.ThrottlingPeriod = TimeSpan.FromSeconds(30);
 			clientOptions.ReconnectionPolicy = new ReconnectionPolicy(6_000, maxAttempts: 10);
-
 			WebSocketClient customClient = new WebSocketClient(clientOptions);
 			Client = new TwitchClient(customClient);
-			// Note: "channel" is wrong, but doesn't work otherwise 
-			Client.Initialize(credentials, "channel");
 
 			Client.OnConnected += Client_OnConnected;
 			Client.OnDisconnected += Client_OnDisconnected;
 			Client.OnConnectionError += Client_OnConnectionError;
 			Client.OnError += Client_OnError;
 			Client.OnJoinedChannel += Client_OnJoinedChannel;
+			Client.OnMessageReceived += Client_OnMessageReceived;
+			Client.OnNewSubscriber += Client_OnNewSub;
+			Client.OnReSubscriber += Client_OnResub;
+			Client.OnGiftedSubscription += Client_OnGiftSub;
 #if DEBUG
 			Client.OnLog += Client_OnLog;
 #endif
-			Client.OnMessageReceived += Client_OnMessageReceived;
 
-			//Client.OnNewSubscriber += Client_OnNewSub;
-			//Client.OnReSubscriber += Client_OnResub;
-			//Client.OnGiftedSubscription += Client_OnGiftSub;
+			// Note: "channel" is wrong, but doesn't work otherwise
+			Client.Initialize(credentials, "channel");
 
-			if (!Client.Connect())
+			if (Client.Connect())
 			{
-				Debug.Error("Could not connect to TwitchAPI");
-				BitManager.State = State.PreStart;
-				return;
+				// Note: State doesn't update here, update loop will
+				// update state when we are both Connected and response,
+				// from twitch user
+				Debug.LogInfo("Twitch Client Connected! Waiting for validation and TwitchAPI setup...");
+				Client.JoinChannel(BitManager.User.Username);
 			}
 			else
 			{
-				Debug.LogInfo("Twitch Client Connected! Waiting for validation and TwitchAPI setup...");
-				BitManager.State = State.WaitValidating;
-
-				Client.JoinChannel(Client.TwitchUsername);
+				Debug.Error("Could not connect to TwitchAPI");
+				BitManager.State = State.PreStart;
 			}
 
-			Config.Save(BitManager);
 		}
 
 		// https://github.com/FixItFreb/BeepoBits/blob/main/Modules/Core/Twitch/TwitchService_OAuth.cs
 		// https://github.com/ExpiredPopsicle/KiriTwitchGD4/blob/master/TwitchService.gd
 		private void OAuthServerStart()
 		{
-			BitManager.State = State.OAuth;
-
 			// Kill any existing websocket server
 			if (OAuthTCPServer != null)
 			{
 				OAuthTCPServer.Stop();
 				OAuthTCPServer = null;
 			}
+
+			BitManager.State = State.OAuth;
 
 			// Fire up a new server
 			OAuthTCPServer = new TcpServer();
@@ -183,8 +215,8 @@ namespace BitCup
 			}
 
 #if DEBUG
-			//GD.Print("Server received message");
-			//GD.Print(OAuthBuffer);
+			GD.Print("Server received message");
+			GD.Print(OAuthBuffer);
 #endif
 
 			if (OAuthBuffer.EndsWith("\n\n"))
@@ -196,32 +228,59 @@ namespace BitCup
 					string getLine = OAuthBuffer.Split("\n", true)[0];
 					OAuthBuffer = OAuthBuffer.Substring(getLine.Length + 1);
 
-					// All we care about here is the GET line
 					if (getLine.StartsWith("GET "))
 					{
-						int tokenStart = getLine.Find("access_token=");
-						Debug.LogDebug("(PRINTING)" + getLine);
-						if (tokenStart == -1)
+						string[] getLineParts = getLine.Split(" ");
+						string httpGetPath = getLineParts[1];
+						if (httpGetPath == "/")
 						{
-							Debug.LogErr("Couldn't find access_token in uri");
+							// Response page: Just a Javascript program to do a redirect
+							// so we can get the access token into the a GET argument
+							// instead of the fragment.
+							string htmlResponse = @"
+                            <html><head></head><body><script>
+							  var url_parts = String(window.location).split(""#"");
+							  if(url_parts.length > 1) {
+								  var redirect_url = url_parts[0] + ""?"" + url_parts[1];
+								  window.location = redirect_url;
+							  }
+						</script></body></html>
+                        ";
+
+							// Send webpage and disconnect.
+							OAuthSendPageData(StreamPeerTcp, htmlResponse);
+							StreamPeerTcp.DisconnectFromHost();
+							StreamPeerTcp = null;
 						}
-						else
+
+						// If the path has a '?' in it at all, then it's probably our
+						// redirected page
+						else if (httpGetPath.Contains("?"))
 						{
-							int endOfToken = getLine.Find("&", tokenStart);
-							if (endOfToken == -1)
-							{
-								endOfToken = getLine.Length;
-							}
-							int start = tokenStart + "access_token=".Length;
-							int end = endOfToken - start;
-							string token = getLine.Substring(start, end);
-							Debug.LogInfo("OAuth token found: " + token);
-
-							BitManager.User.OAuth = token;
-
-							ConnectAndInitClient(BitManager.User);
-
 							string htmlResponse = @"<html><head></head><body>You may now close this window.</body></html>";
+
+							// Attempt to extract the access token from the GET data.
+							string[] pathParts = httpGetPath.Split("?");
+							if (pathParts.Length > 1)
+							{
+								string parameters = pathParts[1];
+								string[] argList = parameters.Split("&");
+								foreach (string arg in argList)
+								{
+									string[] argParts = arg.Split("=");
+									if (argParts.Length > 1)
+									{
+										if (argParts[0] == "access_token")
+										{
+											BitManager.User.OAuth = argParts[1];
+
+											ConnectAndInitClient();
+										}
+									}
+								}
+							}
+
+							// Send webpage and disconnect
 							OAuthSendPageData(StreamPeerTcp, htmlResponse);
 							StreamPeerTcp.DisconnectFromHost();
 							StreamPeerTcp = null;
@@ -239,47 +298,6 @@ namespace BitCup
 				OAuthTCPServer.Stop();
 			}
 		}
-
-		public bool ValidateThanFetchOrConnect(User user)
-		{
-			if (string.IsNullOrEmpty(user.Username))
-			{
-				Debug.LogErr("Username is null");
-				return false;
-			}
-
-			if (string.IsNullOrEmpty(user.OAuth))
-			{
-				Debug.LogErr("No OAuth token found.");
-				FetchNewOAuth();
-				return false;
-			}
-
-			// Client may not be initialized here
-			if (Client != null && Client.IsConnected)
-			{
-				Client.Disconnect();
-			}
-
-			BitManager.User = user;
-
-			const string URL = "https://id.twitch.tv/oauth2/validate";
-			string[] headers = new string[1];
-			headers[0] = "Authorization: OAuth " + BitManager.User.OAuth;
-
-			HttpRequest request = new HttpRequest();
-			BitManager.AddChild(request);
-			request.RequestCompleted += Client_OnRequestCompleted;
-			request.Timeout = 5;
-			Error err = request.Request(URL, headers);
-			if (err != Error.Ok)
-			{
-				GD.PushError(err);
-				return false;
-			}
-			return true;
-		}
-
 		private void OAuthSendPageData(StreamPeer peer, string data)
 		{
 			string httpResponse = string.Join(
@@ -305,23 +323,38 @@ namespace BitCup
 
 		private void Client_OnNewSub(object sender, OnNewSubscriberArgs e)
 		{
-			throw new NotImplementedException();
+			int months = 1;
+			var plan = e.Subscriber.SubscriptionPlan;
+			HandleSub(months, plan);
 		}
 
 		private void Client_OnGiftSub(object sender, OnGiftedSubscriptionArgs e)
 		{
-			throw new NotImplementedException();
+			int months = 1;
+			var plan = e.GiftedSubscription.MsgParamSubPlan;
+			HandleSub(months, plan);
 		}
 
 		private void Client_OnResub(object sender, OnReSubscriberArgs e)
 		{
-			throw new NotImplementedException();
+			int months = e.ReSubscriber.Months;
+			var plan = e.ReSubscriber.SubscriptionPlan;
+			HandleSub(months, plan);
 		}
 
-		private void FetchNewOAuth()
+		private void HandleSub(int months, SubscriptionPlan plan)
 		{
-			Debug.LogInfo("Fetching new OAuth...");
-			OAuthServerStart();
+			if (!BitManager.Settings.EnableSubBits)
+				return;
+
+			int tier = 1;
+			if (plan == SubscriptionPlan.Tier2)
+				tier = 2;
+			else if (plan == SubscriptionPlan.Tier3)
+				tier = 3;
+
+			int convertedToBits = 100 * months * tier;
+			BitManager.CreateOrderWithChecks(convertedToBits);
 		}
 
 		private void Client_OnConnected(object sender, OnConnectedArgs e)
@@ -390,14 +423,13 @@ namespace BitCup
 					{
 						BitManager.CreateOrderWithChecks(amount);
 					}
-					else
-					{
-						GD.PrintErr("Couldnt parse amount string");
-					}
 				}
-				else
+				else if (split[1] == "rain" && split.Length >= 3)
 				{
-					GD.PrintErr("Command invalid, " + e.ChatMessage.Message);
+					if (int.TryParse(split[2], out int amount))
+					{
+						BitManager.CreateRainOrder(amount);
+					}
 				}
 			}
 #if DEBUG
@@ -408,62 +440,6 @@ namespace BitCup
 				Debug.LogInfo(emote.Name);
 			}
 #endif
-		}
-
-		private void Client_OnRequestCompleted(long result, long responseCode, string[] headers, byte[] body)
-		{
-			if (responseCode == 200)
-			{
-				Debug.Assert(!string.IsNullOrEmpty(BitManager.User.Username));
-				Debug.Assert(!string.IsNullOrEmpty(BitManager.User.OAuth));
-
-				var json = new Json();
-				json.Parse(body.GetStringFromUtf8());
-
-				var response = json.Data.AsGodotDictionary();
-
-				if (!response.TryGetValue("client_id", out Variant clientId))
-				{
-					GD.PushError("client_id not found");
-					FetchNewOAuth();
-					return;
-				}
-
-				if (!response.TryGetValue("login", out Variant login))
-				{
-					GD.PushError("login not found");
-					FetchNewOAuth();
-					return;
-				}
-
-				if (!response.TryGetValue("user_id", out Variant userId))
-				{
-					GD.PushError("user_id not found");
-					FetchNewOAuth();
-					return;
-				}
-
-				if (BitManager.User.Username != login.AsString())
-				{
-					GD.PushError("Current Username does not equal found login");
-					FetchNewOAuth();
-					return;
-				}
-
-				Debug.LogInfo($"Login and OAuth good. UserId: {userId}, Connecting...");
-				BitManager.User.BroadcasterId = userId.AsString();
-				ConnectAndInitClient(BitManager.User);
-			}
-			else if (responseCode == 401)
-			{
-				Debug.LogErr($"401 Unauthorized. OAuth probably invalid.");
-				FetchNewOAuth();
-			}
-			else
-			{
-				Debug.Error("Unknown response code");
-				BitManager.State = State.PreStart;
-			}
-		}
+		}		
 	}
 }
