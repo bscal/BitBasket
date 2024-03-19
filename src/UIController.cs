@@ -423,7 +423,7 @@ public partial class UIController : Node
 		Debug.Assert(ButtonFillTheCupCreateUpdate != null);
 		ButtonFillTheCupCreateUpdate.Pressed += () =>
 		{
-			BitManager.TwitchAPI.RequestGetRewards();
+			BitManager.TwitchAPI.RequestCreateRewards();
 		};
 
 		EnableSubBits = GetNode<CheckBox>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/EnableSubBits");
