@@ -66,7 +66,7 @@ public partial class BitManager : Node2D
 	public const int VersionMinor = 6;
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
-	public const int MAX_BITS = 512;
+	public const int MAX_BITS = 1024;
 
 	[Export]
 	public Texture Bit1Texture;
@@ -423,25 +423,44 @@ public partial class BitManager : Node2D
 		BitOrders.Add(bitOrder);
 	}
 
+	public void CreateRainOrderProgress()
+	{
+		BitOrder order = new BitOrder();
+		order.Type = OrderType.Rain;
+		order.BitAmounts[(int)BitTypes.Bit1] = 25;
+		order.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
+		order.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
+		order.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
+		order.Texture[(int)BitTypes.Bit100] = TwitchManager.TextureCache[TwitchManager.DEFAULT_100];
+		order.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
+		BitOrders.Add(order);
+	}
+
+	static RandomNumberGenerator RNG = new RandomNumberGenerator();
+
 	public void CreateRainOrder(int level)
 	{
 		level = Mathf.Clamp(level, 1, 5);
 
 		BitOrder order = new BitOrder();
 		order.Type = OrderType.Rain;
-
-		order.BitAmounts[(int)BitTypes.Bit1] = 50;
+		order.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
+		order.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
+		order.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
+		order.Texture[(int)BitTypes.Bit100] = TwitchManager.TextureCache[TwitchManager.DEFAULT_100];
+		order.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
 
 		switch (level)
 		{
-			case 1: order.BitAmounts[(int)BitTypes.Bit1] += 25; break;
-			case 2: order.BitAmounts[(int)BitTypes.Bit1] += 100; break;
-			case 3: order.BitAmounts[(int)BitTypes.Bit100] = 150; break;
-			case 4: order.BitAmounts[(int)BitTypes.Bit1000] = 150; break;
+			case 1: order.BitAmounts[(int)BitTypes.Bit100] = 25; break;
+			case 2: order.BitAmounts[(int)BitTypes.Bit100] = 75; break;
+			case 3: order.BitAmounts[(int)BitTypes.Bit1000] = 75; break;
+			case 4: order.BitAmounts[(int)BitTypes.Bit5000] = 75; break;
 			case 5:
 				{
-					order.BitAmounts[(int)BitTypes.Bit5000] = 150;
-					order.BitAmounts[(int)BitTypes.Bit10000] = 1;
+					order.BitAmounts[(int)BitTypes.Bit1000] = (short)RNG.RandiRange(50, 75);
+					order.BitAmounts[(int)BitTypes.Bit5000] = (short)RNG.RandiRange(50, 75);
+					order.BitAmounts[(int)BitTypes.Bit10000] = (short)RNG.RandiRange(50, 75);
 				} break;
 		}
 		BitOrders.Add(order);

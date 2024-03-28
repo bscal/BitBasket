@@ -83,20 +83,40 @@ namespace BitCup
 
 		private void CreateEvents()
 		{
-			Dictionary body = new Dictionary();
-			body.Add("type", "channel.hype_train.end");
-			body.Add("version", "1");
-			
-			Dictionary condition = new Dictionary();
-			condition.Add("broadcaster_user_id", BitManager.User.BroadcasterId);
-			body.Add("condition", condition);
+			{ // channel.hype_train.progress
+				Dictionary body = new Dictionary();
+				body.Add("type", "channel.hype_train.progress");
+				body.Add("version", "1");
 
-			Dictionary transport = new Dictionary();
-			transport.Add("method", "websocket");
-			transport.Add("session_id", SessionId);
-			body.Add("transport", transport);
+				Dictionary condition = new Dictionary();
+				condition.Add("broadcaster_user_id", BitManager.User.BroadcasterId);
+				body.Add("condition", condition);
 
-			RequestEventSub(body);
+				Dictionary transport = new Dictionary();
+				transport.Add("method", "websocket");
+				transport.Add("session_id", SessionId);
+				body.Add("transport", transport);
+
+				RequestEventSub(body);
+			}
+
+			{ // channel.hype_train.end
+				Dictionary body = new Dictionary();
+				body.Add("type", "channel.hype_train.end");
+				body.Add("version", "1");
+
+				Dictionary condition = new Dictionary();
+				condition.Add("broadcaster_user_id", BitManager.User.BroadcasterId);
+				body.Add("condition", condition);
+
+				Dictionary transport = new Dictionary();
+				transport.Add("method", "websocket");
+				transport.Add("session_id", SessionId);
+				body.Add("transport", transport);
+
+				RequestEventSub(body);
+			}
+
 
 			Debug.LogInfo("(EVENT_SUB) Created Events");
 		}
@@ -157,13 +177,26 @@ namespace BitCup
 
 			switch (subscription["type"].AsString())
 			{
+				case "channel.hype_train.progress":
+					{
+						Debug.LogDebug("(EVENT) channel.hype_train.progress");
+						if (BitManager.Settings.EnableHypeTrainRain)
+						{
+							if (ValidateTime(e["started_at"].AsString(), 15))
+							{
+								LastHypeTrainId = e["id"].AsString();
+
+								int level = e["level"].AsInt32();
+								BitManager.CreateRainOrderProgress();
+							}
+						}
+					} break;
 				case "channel.hype_train.end":
 					{
 						Debug.LogDebug("(EVENT) channel.hype_train.end");
 						if (BitManager.Settings.EnableHypeTrainRain)
 						{
-							if (ValidateTime(e["ended_at"].AsString(), 15)
-								&& e["id"].AsString() != LastHypeTrainId)
+							if (ValidateTime(e["ended_at"].AsString(), 5))
 							{
 								LastHypeTrainId = e["id"].AsString();
 
