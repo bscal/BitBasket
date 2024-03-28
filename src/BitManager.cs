@@ -27,12 +27,12 @@ public enum OrderType
 	Rain,
 }
 
-public struct BitOrder
+public class BitOrder
 {
 	public OrderType Type = OrderType.Bits;
 	public short[] BitAmounts = new short[(int)BitTypes.MaxBitTypes];
-
-	public BitOrder() { }
+	public ImageTexture[] Texture = new ImageTexture[(int)BitTypes.MaxBitTypes];
+	public string[] TextureId = new string[(int)BitTypes.MaxBitTypes];
 }
 
 public struct BitState
@@ -41,13 +41,15 @@ public struct BitState
 	public short BitPower;
 	public bool HasExploded;
 	public BitTypes Type;
+	public string TextureId;
 
-	public BitState(int index, short bitPower, BitTypes type)
+	public BitState(int index, short bitPower, BitTypes type, string textureId)
 	{
 		Index = index;
 		BitPower = bitPower;
 		HasExploded = false;
 		Type = type;
+		TextureId = textureId;
 	}
 }
 
@@ -61,10 +63,7 @@ public struct User
 public partial class BitManager : Node2D
 {
 	public const int VersionMajor = 0;
-	public const int VersionMinor = 5;
-
-	public const int VersionBitSerialization = 3;
-
+	public const int VersionMinor = 6;
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
 	public const int MAX_BITS = 512;
@@ -106,6 +105,16 @@ public partial class BitManager : Node2D
 
 	private float Timer;
 
+	const int VersionBitSerialization = 4;
+	const string KEY_SERIAL_VERSION = "VersionBitSerialization";
+	const string KEY_TEXTURE = "Texture";
+	const string KEY_TYPE = "BitType";
+	const string KEY_POS_X = "PosX";
+	const string KEY_POS_Y = "PosY";
+	const string KEY_BIT_POWER = "BitPower";
+	const string KEY_HAS_EXPLODED = "HasExploded";
+	const string KEY_IS_ACTIVE = "IsActive";
+
 	public void InvalidateTwitchState()
 	{
 		ResetAllState();
@@ -143,7 +152,10 @@ public partial class BitManager : Node2D
 		Settings.Reload();
 
 		TwitchManager = new TwitchManager(this);
+		TwitchManager.LoadImages();
+
 		EventSub = new EventSub(this);
+
 		TwitchAPI = new TwitchAPI(this);
 		TwitchAPI.ValidateOAuth();
 
@@ -302,6 +314,7 @@ public partial class BitManager : Node2D
 				} break;
 			case (State.Running):
 				{
+					TwitchManager.ProcessQueues((float)delta);
 					TwitchAPI.UpdateEventServer((float)delta);
 					EventSub.UpdateEvents((float)delta);
 
@@ -330,6 +343,8 @@ public partial class BitManager : Node2D
 	{
 		if (what == NotificationWMCloseRequest || what == NotificationCrash)
 		{
+			TwitchManager.SaveImages();
+
 			if (TwitchManager.Client != null && TwitchManager.Client.IsConnected)
 			{
 				TwitchManager.Client.Disconnect();
@@ -352,25 +367,58 @@ public partial class BitManager : Node2D
 		BitPool[bitId].Position = SpawnPosition;
 	}
 
+	private BitOrder CreateBitOrder(int amount)
+	{
+		BitOrder res = new();
+
+		res.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / 10000);
+		amount %= 10000;
+
+		res.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / 5000);
+		amount %= 5000;
+
+		res.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / 1000);
+		amount %= 1000;
+
+		res.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / 100);
+		amount %= 100;
+
+		res.BitAmounts[(int)BitTypes.Bit1] = (short)(amount);
+
+		res.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
+		res.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
+		res.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
+		res.Texture[(int)BitTypes.Bit100] = TwitchManager.TextureCache[TwitchManager.DEFAULT_100];
+		res.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
+
+		return res;
+	}
+
+	public void CreateOrderWithCustomTexture(int amount, string textureId, ImageTexture texture)
+	{
+		amount = Mathf.Clamp(amount, 1, short.MaxValue);
+
+		BitOrder bitOrder = CreateBitOrder(amount);
+
+		// Loop backwards to find largest bit
+		for (int i = (int)BitTypes.MaxBitTypes - 1; i >= 0; --i)
+		{
+			if (bitOrder.BitAmounts[i] > 0) 
+			{
+				bitOrder.Texture[i] = texture;
+				bitOrder.TextureId[i] = textureId;
+				break;
+			}
+		}
+
+		BitOrders.Add(bitOrder);
+	}
+
 	public void CreateOrderWithChecks(int amount)
 	{
 		amount = Mathf.Clamp(amount, 1, short.MaxValue);
 
-		BitOrder bitOrder = new BitOrder();
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / 10000);
-		amount %= 10000;
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / 5000);
-		amount %= 5000;
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / 1000);
-		amount %= 1000;
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / 100);
-		amount %= 100;
-
-		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (short)(amount);
+		BitOrder bitOrder = CreateBitOrder(amount);
 
 		BitOrders.Add(bitOrder);
 	}
@@ -382,22 +430,24 @@ public partial class BitManager : Node2D
 		BitOrder order = new BitOrder();
 		order.Type = OrderType.Rain;
 
+		order.BitAmounts[(int)BitTypes.Bit1] = 50;
+
 		switch (level)
 		{
-			case 1: order.BitAmounts[(int)BitTypes.Bit1] = 50; break;
-			case 2: order.BitAmounts[(int)BitTypes.Bit1] = 100; break;
-			case 3: order.BitAmounts[(int)BitTypes.Bit100] = 100; break;
-			case 4: order.BitAmounts[(int)BitTypes.Bit1000] = 100; break;
+			case 1: order.BitAmounts[(int)BitTypes.Bit1] += 25; break;
+			case 2: order.BitAmounts[(int)BitTypes.Bit1] += 100; break;
+			case 3: order.BitAmounts[(int)BitTypes.Bit100] = 150; break;
+			case 4: order.BitAmounts[(int)BitTypes.Bit1000] = 150; break;
 			case 5:
 				{
-					order.BitAmounts[(int)BitTypes.Bit5000] = 100;
+					order.BitAmounts[(int)BitTypes.Bit5000] = 150;
 					order.BitAmounts[(int)BitTypes.Bit10000] = 1;
 				} break;
 		}
 		BitOrders.Add(order);
 	}
 
-	private int SpawnNode(BitTypes type, Vector2 spawnPos, short bitPower)
+	public int SpawnNode(BitTypes type, Vector2 spawnPos, short bitPower, string textureId, ImageTexture texture)
 	{
 		int idx;
 		do
@@ -451,45 +501,46 @@ public partial class BitManager : Node2D
 				{
 					BitPool[idx].Mass = Settings.Mass1;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./1BitCollision").Disabled = false;
-					SpriteCache[idx].Texture = (Texture2D)Bit1Texture;
+					//SpriteCache[idx].Texture = (Texture2D)Bit1Texture;
 				}
 				break;
 			case BitTypes.Bit100:
 				{
 					BitPool[idx].Mass = Settings.Mass100;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./100BitCollision").Disabled = false;
-					SpriteCache[idx].Texture = (Texture2D)Bit100Texture;
+					//SpriteCache[idx].Texture = (Texture2D)Bit100Texture;
 				}
 				break;
 			case BitTypes.Bit1000:
 				{
 					BitPool[idx].Mass = Settings.Mass1000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./1000BitCollision").Disabled = false;
-					SpriteCache[idx].Texture = (Texture2D)Bit1000Texture;
+					//SpriteCache[idx].Texture = (Texture2D)Bit1000Texture;
 				}
 				break;
 			case BitTypes.Bit5000:
 				{
 					BitPool[idx].Mass = Settings.Mass5000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./5000BitCollision").Disabled = false;
-					SpriteCache[idx].Texture = (Texture2D)Bit5000Texture;
+					//SpriteCache[idx].Texture = (Texture2D)Bit5000Texture;
 				}
 				break;
 			case BitTypes.Bit10000:
 				{
 					BitPool[idx].Mass = Settings.Mass10000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./10000BitCollision").Disabled = false;
-					SpriteCache[idx].Texture = (Texture2D)Bit10000Texture;
+					//SpriteCache[idx].Texture = (Texture2D)Bit10000Texture;
 				}
 				break;
 			default:
 				GD.PrintErr("Wrong type"); break;
 		}
 
+		SpriteCache[idx].Texture = texture;
 		SpriteCache[idx].Show();
 
 		BitStatesSparse[idx] = BitStatesDenseCount;
-		BitStatesDense[BitStatesDenseCount] = new BitState(idx, bitPower, type);
+		BitStatesDense[BitStatesDenseCount] = new BitState(idx, bitPower, type, textureId);
 		++BitStatesDenseCount;
 
 		return BitStatesSparse[idx];
@@ -534,7 +585,7 @@ public partial class BitManager : Node2D
 				if (order.BitAmounts[i] <= 0)
 					Timer = -2;
 
-				SpawnNode((BitTypes)i, SpawnPosition, bitPower);
+				SpawnNode((BitTypes)i, SpawnPosition, bitPower, order.TextureId[i], order.Texture[i]);
 
 				// If last bit type to check and 0
 				if (i == (int)BitTypes.MaxBitTypes - 1 && order.BitAmounts[i] == 0)
@@ -670,14 +721,15 @@ public partial class BitManager : Node2D
 	{
 		var dict = new Godot.Collections.Dictionary<string, Variant>();
 
-		dict.Add("VersionBitSerialization", VersionBitSerialization);
-		dict.Add("PosX", Mathf.Floor(node.Position.X));
-		dict.Add("PosY", Mathf.Floor(node.Position.Y));
-		dict.Add("IsActive", node.ProcessMode == ProcessModeEnum.Always);
+		dict.Add(KEY_SERIAL_VERSION, VersionBitSerialization);
+		dict.Add(KEY_POS_X, Mathf.Floor(node.Position.X));
+		dict.Add(KEY_POS_Y, Mathf.Floor(node.Position.Y));
+		dict.Add(KEY_IS_ACTIVE, node.ProcessMode == ProcessModeEnum.Always);
 
 		int denseIdx = BitStatesSparse[index];
-		dict.Add("HasExploded", (denseIdx == -1) ? false : BitStatesDense[denseIdx].HasExploded);
-		dict.Add("BitType", (denseIdx == -1) ? 0 : (int)BitStatesDense[denseIdx].Type);
+		dict.Add(KEY_HAS_EXPLODED, (denseIdx == -1) ? false : BitStatesDense[denseIdx].HasExploded);
+		dict.Add(KEY_TYPE, (denseIdx == -1) ? 0 : (int)BitStatesDense[denseIdx].Type);
+		dict.Add(KEY_TEXTURE, (denseIdx == -1) ? string.Empty : BitStatesDense[denseIdx].TextureId);
 
 		return dict;
 	}
@@ -750,16 +802,19 @@ public partial class BitManager : Node2D
 			// Get the data from the JSON object
 			var nodeData = new Godot.Collections.Dictionary<string, Variant>((Godot.Collections.Dictionary)json.Data);
 
-			if (nodeData.TryGetValue("VersionBitSerialization", out Variant bitVersion)
+			if (nodeData.TryGetValue(KEY_SERIAL_VERSION, out Variant bitVersion)
 				&& (int)bitVersion == VersionBitSerialization
-				&& (bool)nodeData["IsActive"])
+				&& (bool)nodeData[KEY_IS_ACTIVE])
 			{
-				BitTypes type = (BitTypes)((int)nodeData["BitType"]);
-				Vector2 pos = new Vector2((float)nodeData["PosX"], (float)nodeData["PosY"]);
-				short bitPower = (short)nodeData.GetValueOrDefault("BitPower", 1);
-				bool hasExploded = (bool)nodeData["HasExploded"];
+				string textureId = (string)nodeData.GetValueOrDefault(KEY_TEXTURE, string.Empty);
+				BitTypes type = (BitTypes)(int)nodeData[KEY_TYPE];
+				Vector2 pos = new Vector2((float)nodeData[KEY_POS_X], (float)nodeData[KEY_POS_Y]);
+				short bitPower = (short)nodeData.GetValueOrDefault(KEY_BIT_POWER, 1);
+				bool hasExploded = (bool)nodeData[KEY_HAS_EXPLODED];
 
-				int denseIdx = SpawnNode(type, pos, bitPower);
+				ImageTexture texture = TwitchManager.GetTextureOrDefault(textureId, type);
+
+				int denseIdx = SpawnNode(type, pos, bitPower, textureId, texture);
 				BitStatesDense[denseIdx].HasExploded = hasExploded;
 			}
 		}

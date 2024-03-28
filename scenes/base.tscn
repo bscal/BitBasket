@@ -65,7 +65,7 @@ Bit5000Texture = ExtResource("5_2jdxv")
 Bit10000Texture = ExtResource("6_2b3dc")
 
 [node name="SpawnPosition" type="Node2D" parent="BitManager"]
-position = Vector2(833, -91)
+position = Vector2(823, -91)
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="BitManager"]
 position = Vector2(835, 0)
@@ -73,7 +73,8 @@ stream = ExtResource("7_loypx")
 volume_db = -11.258
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
-position = Vector2(682, 435)
+position = Vector2(694, 602)
+scale = Vector2(0.8, 0.8)
 physics_material_override = SubResource("PhysicsMaterial_0tfi2")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="StaticBody2D"]
@@ -88,7 +89,8 @@ scale = Vector2(1.03567, 0.861591)
 texture = ExtResource("7_n5p6f")
 
 [node name="ForceArea0" type="Area2D" parent="."]
-position = Vector2(746, 574)
+position = Vector2(758, 741)
+scale = Vector2(0.8, 0.8)
 script = ExtResource("9_e53da")
 AlwaysExplode = true
 
@@ -98,7 +100,8 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea1" type="Area2D" parent="."]
-position = Vector2(746, 436)
+position = Vector2(758, 603)
+scale = Vector2(0.8, 0.8)
 script = ExtResource("9_e53da")
 AlwaysExplode = true
 
@@ -108,7 +111,8 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea2" type="Area2D" parent="."]
-position = Vector2(749, 333)
+position = Vector2(761, 500)
+scale = Vector2(0.8, 0.8)
 script = ExtResource("9_e53da")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea2"]
@@ -117,7 +121,8 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea3" type="Area2D" parent="."]
-position = Vector2(751, 280)
+position = Vector2(763, 447)
+scale = Vector2(0.8, 0.8)
 script = ExtResource("9_e53da")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea3"]
@@ -126,7 +131,8 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea4" type="Area2D" parent="."]
-position = Vector2(750, 95)
+position = Vector2(762, 262)
+scale = Vector2(0.8, 0.8)
 script = ExtResource("9_e53da")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea4"]
@@ -135,7 +141,8 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="ForceArea5" type="Area2D" parent="."]
-position = Vector2(750, 16)
+position = Vector2(762, 183)
+scale = Vector2(0.8, 0.8)
 script = ExtResource("9_e53da")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ForceArea5"]
@@ -144,20 +151,22 @@ shape = SubResource("RectangleShape2D_mrrwj")
 debug_color = Color(0.745098, 0.25098, 0.952941, 0.419608)
 
 [node name="BoundsArea" type="Area2D" parent="."]
+position = Vector2(0, 67)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BoundsArea"]
 position = Vector2(799, -608.5)
 shape = SubResource("RectangleShape2D_gwl3m")
 
 [node name="CupArea" type="Area2D" parent="."]
-position = Vector2(715, 366)
+position = Vector2(727, 533)
+scale = Vector2(0.8, 0.8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CupArea"]
 position = Vector2(121.5, 233)
 shape = SubResource("RectangleShape2D_elf5u")
 
 [node name="BoundsTop" type="StaticBody2D" parent="."]
-position = Vector2(0, -2134)
+position = Vector2(0, -2067)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BoundsTop"]
 position = Vector2(799, 31)
@@ -305,6 +314,7 @@ offset_right = 52.0
 offset_bottom = 373.0
 
 [node name="AspectRatioContainer" type="PanelContainer" parent="Container3"]
+custom_minimum_size = Vector2(600, 850)
 layout_mode = 2
 offset_right = 400.0
 offset_bottom = 435.0
@@ -317,10 +327,10 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_ilvoy")
 
 [node name="VSplitContainer" type="VSplitContainer" parent="Container3/AspectRatioContainer"]
 layout_mode = 2
-size_flags_vertical = 0
 
 [node name="Label" type="Label" parent="Container3/AspectRatioContainer/VSplitContainer"]
 layout_mode = 2
+size_flags_vertical = 0
 theme_override_font_sizes/font_size = 24
 text = "Settings
 "
@@ -328,11 +338,8 @@ horizontal_alignment = 1
 
 [node name="Margin" type="MarginContainer" parent="Container3/AspectRatioContainer/VSplitContainer"]
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 0
-theme_override_constants/margin_left = 2
-theme_override_constants/margin_top = 0
-theme_override_constants/margin_right = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin"]
@@ -596,7 +603,7 @@ instead of using total bits. For example,
 100bit cheer with this turned OFF, but will
 be 50bits, 25bits, and another 25bits, if
 turned ON."
-text = "Seperate"
+text = "Seperate Cheers Inside Same Message"
 
 [node name="CheckBoxCombineBits" type="CheckBox" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
 layout_mode = 2
@@ -609,8 +616,12 @@ increased power. This only works,
 with bits > 1"
 text = "Combine Same Size Bits"
 
+[node name="Control" type="TextureRect" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+
 [node name="HBoxContainer" type="HBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
 layout_mode = 2
+size_flags_vertical = 10
 
 [node name="SaveButton" type="Button" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/HBoxContainer"]
 custom_minimum_size = Vector2(128, 0)
