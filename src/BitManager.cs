@@ -104,6 +104,7 @@ public partial class BitManager : Node2D
 	public bool IsDebugEnabled;
 
 	private float Timer;
+	private RandomNumberGenerator RNG = new RandomNumberGenerator();
 
 	const int VersionBitSerialization = 4;
 	const string KEY_SERIAL_VERSION = "VersionBitSerialization";
@@ -134,16 +135,6 @@ public partial class BitManager : Node2D
 	public override void _Ready()
 	{
 		Engine.MaxFps = 60;
-
-		//string logFileDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "logs");
-		//string logFilePath = System.IO.Path.Combine(logFileDir, "bitbucket.log");
-		//if (!System.IO.Directory.Exists(logFileDir))
-		//{
-		//	System.IO.Directory.CreateDirectory(logFileDir);
-		//}
-		//ProjectSettings.SetSetting("debug/file_logging/log_path", logFilePath);
-		//ProjectSettings.SetSetting("debug/file_logging/enable_file_logging", true);
-		//ProjectSettings.SetSetting("debug/file_logging/enable_file_logging.pc", true);
 
 		State = State.PreStart;
 
@@ -427,7 +418,7 @@ public partial class BitManager : Node2D
 	{
 		BitOrder order = new BitOrder();
 		order.Type = OrderType.Rain;
-		order.BitAmounts[(int)BitTypes.Bit1] = 25;
+		order.BitAmounts[(int)BitTypes.Bit1] = (short)RNG.RandiRange(25, 50);
 		order.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
 		order.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
 		order.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
@@ -435,8 +426,6 @@ public partial class BitManager : Node2D
 		order.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
 		BitOrders.Add(order);
 	}
-
-	static RandomNumberGenerator RNG = new RandomNumberGenerator();
 
 	public void CreateRainOrder(int level)
 	{
