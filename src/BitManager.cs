@@ -63,7 +63,7 @@ public struct User
 public partial class BitManager : Node2D
 {
 	public const int VersionMajor = 0;
-	public const int VersionMinor = 6;
+	public const int VersionMinor = 7;
 	public static string VERSION_STRING = string.Format("{0}.{1}", VersionMajor, VersionMinor);
 
 	public const int MAX_BITS = 1024;
