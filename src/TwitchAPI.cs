@@ -21,7 +21,6 @@ namespace BitCup
 
 		string FillTheCupRewardId;
 
-
 		int RequestUserRetry;
 
 		float Counter;

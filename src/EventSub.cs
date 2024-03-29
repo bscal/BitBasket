@@ -6,6 +6,8 @@ namespace BitCup
 {
 	public class EventSub
 	{
+		public bool WereEventsCreated;
+
 		BitManager BitManager;
 
 		WebSocketPeer Peer;
@@ -117,7 +119,6 @@ namespace BitCup
 				RequestEventSub(body);
 			}
 
-
 			Debug.LogInfo("(EVENT_SUB) Created Events");
 		}
 
@@ -130,7 +131,7 @@ namespace BitCup
 			{
 				switch (responseCode)
 				{
-					case 202: break;
+					case 202: WereEventsCreated = true; break;
 					case 400: Debug.LogErr("(EVENT_SUB) 400 Bad Request"); break;
 					case 401:
 						{
@@ -295,12 +296,69 @@ namespace BitCup
 				}
 				";
 
-			var json = new Json();
-			json.Parse(str);
-			var data = json.Data.AsGodotDictionary();
-			data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["ended_at"] = DateTime.Now.ToString();
-			GD.Print(json.Data);
-			ParsePacket(data);
+			string str2 = @"
+				{
+				    ""metadata"": {
+				        ""message_id"": ""befa7b53-d79d-478f-86b9-120f112b044e"",
+				        ""message_type"": ""notification"",
+				        ""message_timestamp"": ""2022-11-16T10:11:12.464757833Z"",
+				        ""subscription_type"": ""channel.follow"",
+				        ""subscription_version"": ""1""
+				    },
+				    ""payload"":
+					{
+						""subscription"": {
+							""id"": ""f1c2a387-161a-49f9-a165-0f21d7a4e1c4"",
+							""type"": ""channel.hype_train.progress"",
+							""version"": ""1"",
+							""status"": ""enabled"",
+							""cost"": 0,
+							""condition"": {
+								""broadcaster_user_id"": ""1337""
+							},
+							 ""transport"": {
+								""method"": ""webhook"",
+								""callback"": ""https://example.com/webhooks/callback""
+							},
+							""created_at"": ""2019-11-16T10:11:12.634234626Z""
+						},
+						""event"": {
+							""id"": ""1b0AsbInCHZW2SQFQkCzqN07Ib2"",
+							""broadcaster_user_id"": ""1337"",
+							""broadcaster_user_login"": ""cool_user"",
+							""broadcaster_user_name"": ""Cool_User"",
+							""level"": 3,
+							""total"": 137,
+							""top_contributions"": [
+								{ ""user_id"": ""123"", ""user_login"": ""pogchamp"", ""user_name"": ""PogChamp"", ""type"": ""bits"", ""total"": 50 },
+								{ ""user_id"": ""456"", ""user_login"": ""kappa"", ""user_name"": ""Kappa"", ""type"": ""subscription"", ""total"": 45 }
+							],
+							""started_at"": ""2020-07-15T17:16:03.17106713Z"",
+							""ended_at"": ""2024-03-18T12:12:12.17106713Z"",
+							""cooldown_ends_at"": ""2020-07-15T18:16:11.17106713Z""
+						}
+				    }
+				}
+				";
+
+			for (int i = 0; i < 5; ++i)
+			{
+				var json = new Json();
+				json.Parse(str2);
+				var data = json.Data.AsGodotDictionary();
+				data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["started_at"] = DateTime.Now.ToString();
+				GD.Print(json.Data);
+				ParsePacket(data);
+			}
+
+			{
+				var json = new Json();
+				json.Parse(str);
+				var data = json.Data.AsGodotDictionary();
+				data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["ended_at"] = DateTime.Now.ToString();
+				GD.Print(json.Data);
+				ParsePacket(data);
+			}
 		}
 	}
 }

@@ -116,22 +116,6 @@ public partial class BitManager : Node2D
 	const string KEY_HAS_EXPLODED = "HasExploded";
 	const string KEY_IS_ACTIVE = "IsActive";
 
-	public void InvalidateTwitchState()
-	{
-		ResetAllState();
-		TwitchAPI.OAuthState = TwitchOAuthState.Invalid;
-	}
-
-	public void ResetAllState()
-	{
-		TwitchAPI.OAuthState = TwitchOAuthState.Unknown;
-		State = State.PreStart;
-
-		Config.Load(this);
-
-		TwitchAPI.ValidateOAuth();
-	}
-
 	public override void _Ready()
 	{
 		Engine.MaxFps = 60;
@@ -171,61 +155,6 @@ public partial class BitManager : Node2D
 		CheckForUpdates();
 
 		Debug.LogInfo("BitManager ready!");
-	}
-
-	private void CheckForUpdates()
-	{
-		Debug.LogInfo("Checking for updates...");
-
-		HttpRequest request = new HttpRequest();
-		AddChild(request);
-		request.Timeout = 1.0;
-		request.RequestCompleted += (long result, long responseCode, string[] headers, byte[] body) =>
-		{
-			if (responseCode == 200)
-			{
-				Json json = new Json();
-				json.Parse(body.GetStringFromUtf8());
-				
-				// Note: Response comes back in array form
-				var response = json.Data.AsGodotArray()[0].AsGodotDictionary();
-				
-				if (response.TryGetValue("tag_name", out Variant tagName))
-				{
-					string[] split = ((string)tagName).Split('.');
-					if (split.Length != 2)
-						return;
-
-					int major = int.Parse(split[0]);
-					int minor = int.Parse(split[1]);
-					if (VersionMajor < major || VersionMinor < minor)
-					{
-						Debug.LogInfo("Needs an update");
-						IsUpdateAvailable = true;
-					}
-					else
-					{
-						Debug.LogInfo("Version up to date!");
-					}
-				}
-			}
-			else
-			{
-				Debug.LogErr("Bad response from CheckForUpdates {0}", responseCode);
-			}
-		};
-
-		string url = "https://api.github.com/repos/bscal/BitBasket/releases";
-		string[] headers = new string[]
-		{
-			"Accept: application/vnd.github+json",
-			"X-GitHub-Api-Version: 2022-11-28",
-		};
-		Error err = request.Request(url, headers);
-		if (err != Error.Ok)
-		{
-			GD.PushError(err);
-		}
 	}
 
 
@@ -273,14 +202,14 @@ public partial class BitManager : Node2D
 			return;
 		}
 
-		State = State.Running;
-
 		TwitchAPI.RequestGetRewards();
 
 #if DEBUG
 		// Tests
 		EventSub.TestHypeTrain();
 #endif
+
+		State = State.Running;
 	}
 
 	public override void _Process(double delta)
@@ -351,38 +280,27 @@ public partial class BitManager : Node2D
 		}
 	}
 
+	public void InvalidateTwitchState()
+	{
+		ResetAllState();
+		TwitchAPI.OAuthState = TwitchOAuthState.Invalid;
+	}
+
+	public void ResetAllState()
+	{
+		TwitchAPI.OAuthState = TwitchOAuthState.Unknown;
+		State = State.PreStart;
+
+		Config.Load(this);
+
+		TwitchAPI.ValidateOAuth();
+	}
+
 	public void HideBit(int bitId)
 	{
 		BitPool[bitId].ProcessMode = ProcessModeEnum.Disabled;
 		SpriteCache[bitId].Hide();
 		BitPool[bitId].Position = SpawnPosition;
-	}
-
-	private BitOrder CreateBitOrder(int amount)
-	{
-		BitOrder res = new();
-
-		res.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / 10000);
-		amount %= 10000;
-
-		res.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / 5000);
-		amount %= 5000;
-
-		res.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / 1000);
-		amount %= 1000;
-
-		res.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / 100);
-		amount %= 100;
-
-		res.BitAmounts[(int)BitTypes.Bit1] = (short)(amount);
-
-		res.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
-		res.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
-		res.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
-		res.Texture[(int)BitTypes.Bit100] = TwitchManager.TextureCache[TwitchManager.DEFAULT_100];
-		res.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
-
-		return res;
 	}
 
 	public void CreateOrderWithCustomTexture(int amount, string textureId, ImageTexture texture)
@@ -394,7 +312,7 @@ public partial class BitManager : Node2D
 		// Loop backwards to find largest bit
 		for (int i = (int)BitTypes.MaxBitTypes - 1; i >= 0; --i)
 		{
-			if (bitOrder.BitAmounts[i] > 0) 
+			if (bitOrder.BitAmounts[i] > 0)
 			{
 				bitOrder.Texture[i] = texture;
 				bitOrder.TextureId[i] = textureId;
@@ -419,11 +337,7 @@ public partial class BitManager : Node2D
 		BitOrder order = new BitOrder();
 		order.Type = OrderType.Rain;
 		order.BitAmounts[(int)BitTypes.Bit1] = (short)RNG.RandiRange(25, 50);
-		order.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
-		order.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
-		order.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
-		order.Texture[(int)BitTypes.Bit100] = TwitchManager.TextureCache[TwitchManager.DEFAULT_100];
-		order.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
+		BitOrderDefaultTextures(order);
 		BitOrders.Add(order);
 	}
 
@@ -433,11 +347,7 @@ public partial class BitManager : Node2D
 
 		BitOrder order = new BitOrder();
 		order.Type = OrderType.Rain;
-		order.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
-		order.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
-		order.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
-		order.Texture[(int)BitTypes.Bit100] = TwitchManager.TextureCache[TwitchManager.DEFAULT_100];
-		order.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
+		BitOrderDefaultTextures(order);
 
 		switch (level)
 		{
@@ -450,7 +360,8 @@ public partial class BitManager : Node2D
 					order.BitAmounts[(int)BitTypes.Bit1000] = (short)RNG.RandiRange(50, 75);
 					order.BitAmounts[(int)BitTypes.Bit5000] = (short)RNG.RandiRange(50, 75);
 					order.BitAmounts[(int)BitTypes.Bit10000] = (short)RNG.RandiRange(50, 75);
-				} break;
+				}
+				break;
 		}
 		BitOrders.Add(order);
 	}
@@ -554,12 +465,51 @@ public partial class BitManager : Node2D
 		return BitStatesSparse[idx];
 	}
 
+	private BitOrder CreateBitOrder(int amount)
+	{
+		BitOrder res = new();
+
+		res.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / 10000);
+		amount %= 10000;
+
+		res.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / 5000);
+		amount %= 5000;
+
+		res.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / 1000);
+		amount %= 1000;
+
+		res.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / 100);
+		amount %= 100;
+
+		res.BitAmounts[(int)BitTypes.Bit1] = (short)(amount);
+
+		BitOrderDefaultTextures(res);
+
+		return res;
+	}
+
+	private void BitOrderDefaultTextures(BitOrder order)
+	{
+		order.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
+		order.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
+		order.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
+		order.Texture[(int)BitTypes.Bit100] = TwitchManager.TextureCache[TwitchManager.DEFAULT_100];
+		order.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
+
+		order.TextureId[(int)BitTypes.Bit10000] = TwitchManager.DEFAULT_10000;
+		order.TextureId[(int)BitTypes.Bit5000] = TwitchManager.DEFAULT_5000;
+		order.TextureId[(int)BitTypes.Bit1000] = TwitchManager.DEFAULT_1000;
+		order.TextureId[(int)BitTypes.Bit100] = TwitchManager.DEFAULT_100;
+		order.TextureId[(int)BitTypes.Bit1] = TwitchManager.DEFAULT_1;
+	}
+
+
 	private bool BitOrderProcessNext(float dt)
 	{
 		if (BitOrders.Count == 0)
 			return false;
 
-		bool isFinished = false;
+		bool isFinished = true;
 		BitOrder order = BitOrders[0];
 
 		float delay;
@@ -595,26 +545,28 @@ public partial class BitManager : Node2D
 
 				SpawnNode((BitTypes)i, SpawnPosition, bitPower, order.TextureId[i], order.Texture[i]);
 
-				// If last bit type to check and 0
-				if (i == (int)BitTypes.MaxBitTypes - 1 && order.BitAmounts[i] == 0)
-				{
-					isFinished = true;
-				}
-
 				// Only do 1 bit per update
-				break;
-			}
-			// This makes sure we dont hang on orders if last
-			// amount is not > 0
-			else if (i == (int)BitTypes.MaxBitTypes - 1)
-			{
-				isFinished = true;
 				break;
 			}
 		}
 
+		for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
+		{
+			if (order.BitAmounts[i] > 0)
+			{
+				isFinished = false;
+			}
+		}
+
 		if (isFinished)
-			Timer = -3;
+		{
+			if (BitOrders.Count > 1 && BitOrders[1].Type == OrderType.Rain)
+			{
+				Timer = 0f;
+			}
+			else
+				Timer = -3;
+		}
 
 		return isFinished;
 	}
@@ -725,6 +677,61 @@ public partial class BitManager : Node2D
 		}
 	}
 
+	private void CheckForUpdates()
+	{
+		Debug.LogInfo("Checking for updates...");
+
+		HttpRequest request = new HttpRequest();
+		AddChild(request);
+		request.Timeout = 1.0;
+		request.RequestCompleted += (long result, long responseCode, string[] headers, byte[] body) =>
+		{
+			if (responseCode == 200)
+			{
+				Json json = new Json();
+				json.Parse(body.GetStringFromUtf8());
+
+				// Note: Response comes back in array form
+				var response = json.Data.AsGodotArray()[0].AsGodotDictionary();
+
+				if (response.TryGetValue("tag_name", out Variant tagName))
+				{
+					string[] split = ((string)tagName).Split('.');
+					if (split.Length != 2)
+						return;
+
+					int major = int.Parse(split[0]);
+					int minor = int.Parse(split[1]);
+					if (VersionMajor < major || VersionMinor < minor)
+					{
+						Debug.LogInfo("Needs an update");
+						IsUpdateAvailable = true;
+					}
+					else
+					{
+						Debug.LogInfo("Version up to date!");
+					}
+				}
+			}
+			else
+			{
+				Debug.LogErr("Bad response from CheckForUpdates {0}", responseCode);
+			}
+		};
+
+		string url = "https://api.github.com/repos/bscal/BitBasket/releases";
+		string[] headers = new string[]
+		{
+			"Accept: application/vnd.github+json",
+			"X-GitHub-Api-Version: 2022-11-28",
+		};
+		Error err = request.Request(url, headers);
+		if (err != Error.Ok)
+		{
+			GD.PushError(err);
+		}
+	}
+
 	private Godot.Collections.Dictionary<string, Variant> SerializeBit(int index, RigidBody2D node)
 	{
 		var dict = new Godot.Collections.Dictionary<string, Variant>();
@@ -735,7 +742,6 @@ public partial class BitManager : Node2D
 		dict.Add(KEY_IS_ACTIVE, node.ProcessMode == ProcessModeEnum.Always);
 
 		int denseIdx = BitStatesSparse[index];
-		dict.Add(KEY_HAS_EXPLODED, (denseIdx == -1) ? false : BitStatesDense[denseIdx].HasExploded);
 		dict.Add(KEY_TYPE, (denseIdx == -1) ? 0 : (int)BitStatesDense[denseIdx].Type);
 		dict.Add(KEY_TEXTURE, (denseIdx == -1) ? string.Empty : BitStatesDense[denseIdx].TextureId);
 
@@ -818,12 +824,11 @@ public partial class BitManager : Node2D
 				BitTypes type = (BitTypes)(int)nodeData[KEY_TYPE];
 				Vector2 pos = new Vector2((float)nodeData[KEY_POS_X], (float)nodeData[KEY_POS_Y]);
 				short bitPower = (short)nodeData.GetValueOrDefault(KEY_BIT_POWER, 1);
-				bool hasExploded = (bool)nodeData[KEY_HAS_EXPLODED];
 
 				ImageTexture texture = TwitchManager.GetTextureOrDefault(textureId, type);
 
 				int denseIdx = SpawnNode(type, pos, bitPower, textureId, texture);
-				BitStatesDense[denseIdx].HasExploded = hasExploded;
+				BitStatesDense[denseIdx].HasExploded = true;
 			}
 		}
 		return true;

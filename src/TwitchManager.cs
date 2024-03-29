@@ -419,12 +419,16 @@ namespace BitCup
 
 		public void ProcessQueues(float dt)
 		{
+			// Will be empty the majority of the time, and low chance
+			// of handling several requests at a time.
 			for (int i = EmoteRequestQueue.Count - 1; i >= 0; --i)
 			{
 				BitOrderQueueData newData = EmoteRequestQueue[i];
 
 				if (!newData.HasSendHTTPRequest)
 				{
+					// TwitchLib chatmessage event is on another thread
+					// but never tells you? lol
 					newData.HasSendHTTPRequest = true;
 					RequestImage(newData.EmoteId);
 				}
@@ -433,14 +437,13 @@ namespace BitCup
 					newData.Lifetime += dt;
 					if (newData.Lifetime > 5)
 					{
+						// Hard coded timeout, uses default bits
 						BitManager.CreateOrderWithChecks(newData.BitAmount);
 						EmoteRequestQueue.RemoveAt(i);
 						return;
 					}
 
-					if (TextureCache.TryGetValue(
-							newData.EmoteId,
-							out var bitTexture))
+					if (TextureCache.TryGetValue(newData.EmoteId, out var bitTexture))
 					{
 						BitManager.CreateOrderWithCustomTexture(newData.BitAmount, newData.EmoteId, bitTexture);
 						EmoteRequestQueue.RemoveAt(i);
@@ -484,29 +487,35 @@ namespace BitCup
 			
 			List<string> filesToRemove = new(16);
 
-
 			string[] files = Directory.GetFiles(dirPath);
 			foreach (string filePath in files)
 			{	
-				DateTime creationTime = File.GetCreationTime(filePath);
-				if (creationTime.Subtract(DateTime.Now) > TimeSpan.FromDays(15.0))
+				try
 				{
-					filesToRemove.Add(filePath);
-					continue;
+					DateTime creationTime = File.GetCreationTime(filePath);
+					if (creationTime.Subtract(DateTime.Now) > TimeSpan.FromDays(15.0))
+					{
+						filesToRemove.Add(filePath);
+						continue;
+					}
+
+					if (filePath.EndsWith(".png"))
+					{
+						Image image = Image.LoadFromFile(filePath);
+
+						string fileBaseName = filePath.GetFile().GetBaseName();
+
+						ImageTexture imgTexture = new ImageTexture();
+						imgTexture.SetImage(image);
+
+						Debug.LogInfo($"Loaded {fileBaseName} emote from file cache!");
+
+						TextureCache.TryAdd(fileBaseName, imgTexture);
+					}
 				}
-
-				if (filePath.EndsWith(".png"))
+				catch
 				{
-					Image image = Image.LoadFromFile(filePath);
-
-					string fileBaseName = filePath.GetFile().GetBaseName();
-
-					ImageTexture imgTexture = new ImageTexture();
-					imgTexture.SetImage(image);
-
-					Debug.LogInfo($"Loaded {fileBaseName} emote from file cache!");
-
-					TextureCache.TryAdd(fileBaseName, imgTexture);
+					continue;
 				}
 			}
 
@@ -525,7 +534,8 @@ namespace BitCup
 		/// <returns></returns>
 		public ImageTexture GetTextureOrDefault(string textureId, BitTypes type)
 		{
-			if (TextureCache.TryGetValue(textureId, out ImageTexture texture))
+			if (!string.IsNullOrWhiteSpace(textureId) 
+				&& TextureCache.TryGetValue(textureId, out ImageTexture texture))
 			{
 				return texture;
 			}
@@ -614,17 +624,25 @@ namespace BitCup
 				{
 					foreach (var emote in e.ChatMessage.EmoteSet.Emotes)
 					{
-						string lowerName = emote.Name.ToLower();
-						if (lowerName.Contains("cheer"))
+						// Note: Have no idea what the case of cheer will be.
+						// This may need to be changed? If a custom cheer does use
+						// cheer in the mote then what? Probably don't have to worry
+						// about a regular emote matching a cheer though? Could check if
+						// a digit is at the end or substring after "cheer"?
+						if (emote.Name.ToLower().Contains("cheer"))
 						{
-							string valueStr = new string(lowerName.Where(c => char.IsDigit(c)).ToArray());
+
+							// There is no static position in string to split.
+							string valueStr = new string(emote.Name.Where(c => char.IsDigit(c)).ToArray());
 							if (!int.TryParse(valueStr, out int amount))
 								continue;
 
 							Debug.LogInfo($"(BITS) Name: {emote.Name}, CheerAmount: {valueStr}, {amount}");
 
+							// If texture is cached just create order,
+							// otherwise we queue up the order and wait
+							// for request to finish or timeout.
 							ImageTexture texture = GetTextureOrQueueRequest(emote.Id, amount);
-
 							if (texture != null)
 								BitManager.CreateOrderWithChecks(amount);
 						}

@@ -314,10 +314,10 @@ offset_right = 52.0
 offset_bottom = 373.0
 
 [node name="AspectRatioContainer" type="PanelContainer" parent="Container3"]
-custom_minimum_size = Vector2(600, 850)
+custom_minimum_size = Vector2(600, 800)
 layout_mode = 2
-offset_right = 400.0
-offset_bottom = 435.0
+offset_right = 600.0
+offset_bottom = 816.0
 scale = Vector2(0.75, 0.75)
 
 [node name="Panel" type="Panel" parent="Container3/AspectRatioContainer"]
