@@ -20,8 +20,8 @@ namespace BitCup
 		const float RECONNECT_TIMER_START = 10.0f;
 		const string EVENTSUB_WEBSOCKET_URL = "wss://eventsub.wss.twitch.tv/ws";
 
-		int RecentIdIndex;
-		string[] RecentId = new string[8];
+		//int RecentIdIndex;
+		//string[] RecentId = new string[8];
 
 		public EventSub(BitManager bitManager)
 		{
@@ -215,6 +215,7 @@ namespace BitCup
 			if (data.TryGetValue("metadata", out Variant metadata)
 				&& data.TryGetValue("payload", out Variant payload))
 			{
+				/* Not sure if we actually need this security
 				string message_id = metadata.AsGodotDictionary()["message_id"].AsString();
 				if (string.IsNullOrWhiteSpace(message_id))
 					return;
@@ -222,10 +223,11 @@ namespace BitCup
 				if (RecentId.Contains(message_id))
 					return;
 
-				Debug.LogInfo($"(EVENT_SUB) Packet Received {metadata.AsGodotDictionary()["message_type"].AsString()}");
-
 				RecentId[RecentIdIndex] = message_id;
 				RecentIdIndex = (RecentIdIndex + 1) % RecentId.Length;
+				*/
+
+				Debug.LogInfo($"(EVENT_SUB) Packet Received {metadata.AsGodotDictionary()["message_type"].AsString()}");
 
 				switch (metadata.AsGodotDictionary()["message_type"].AsString())
 				{
