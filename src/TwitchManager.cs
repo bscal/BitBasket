@@ -435,7 +435,7 @@ namespace BitCup
 				else
 				{
 					newData.Lifetime += dt;
-					if (newData.Lifetime > 5)
+					if (newData.Lifetime > 10)
 					{
 						// Hard coded timeout, uses default bits
 						BitManager.CreateOrderWithChecks(newData.BitAmount);
@@ -489,7 +489,7 @@ namespace BitCup
 
 			string[] files = Directory.GetFiles(dirPath);
 			foreach (string filePath in files)
-			{	
+			{
 				try
 				{
 					DateTime creationTime = File.GetCreationTime(filePath);
@@ -513,8 +513,9 @@ namespace BitCup
 						TextureCache.TryAdd(fileBaseName, imgTexture);
 					}
 				}
-				catch
+				catch (Exception ex)
 				{
+					Debug.LogDebug(ex.ToString());
 					continue;
 				}
 			}
@@ -556,14 +557,20 @@ namespace BitCup
 		private ImageTexture GetTextureOrQueueRequest(string textureId, int bitAmount)
 		{
 			if (string.IsNullOrWhiteSpace(textureId))
+			{
+				Debug.LogDebug("Invalid textureId");
 				return null;
+			}
 
 			if (TextureCache.TryGetValue(textureId, out ImageTexture texture))
 			{
+				Debug.LogDebug("Found textureId");
 				return texture;
 			}
 			else
 			{
+				Debug.LogDebug("Could not find textureId. Requesting...");
+
 				BitOrderQueueData order = new();
 				order.EmoteId = textureId;
 				order.BitAmount = bitAmount;
@@ -575,11 +582,11 @@ namespace BitCup
 
 		private void RequestImage(string id)
 		{
-			string url = $"https://static-cdn.jtvnw.net/emoticons/v2/{id}/default/light/2.0";
+			string url = $"https://static-cdn.jtvnw.net/emoticons/v2/{id}/static/light/2.0";
 
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
-			request.Timeout = 5;
+			request.Timeout = 10;
 
 			request.RequestCompleted += (long result, long responseCode, string[] headers, byte[] body) =>
 			{
@@ -620,32 +627,67 @@ namespace BitCup
 				Debug.LogInfo($"(BITS) Individual Cheers: {BitManager.Settings.ExperimentalBitParsing}");
 				Debug.LogInfo($"(BITS) CombineBits. Total: {BitManager.Settings.CombineBits}");
 
+
 				if (BitManager.Settings.ExperimentalBitParsing)
 				{
-					foreach (var emote in e.ChatMessage.EmoteSet.Emotes)
+					List<string> foundCheers = new List<string>(96);
+					string[] split = e.ChatMessage.Message.Split(" ");
+
+					foreach (string s in split)
 					{
-						// Note: Have no idea what the case of cheer will be.
-						// This may need to be changed? If a custom cheer does use
-						// cheer in the mote then what? Probably don't have to worry
-						// about a regular emote matching a cheer though? Could check if
-						// a digit is at the end or substring after "cheer"?
+						if (s.ToLower().Contains("cheer"))
+						{
+							foundCheers.Add(s);
+						}
+					}
+
+					// Safety
+					if (foundCheers.Count == 0)
+					{
+						BitManager.CreateOrderWithChecks(e.ChatMessage.Bits);
+						return;
+					}
+
+					int totalBitCheered = 0;
+					int cheerIndex = 0;
+					foreach (Emote emote in e.ChatMessage.EmoteSet.Emotes)
+					{
 						if (emote.Name.ToLower().Contains("cheer"))
 						{
+							// Safety
+							if (totalBitCheered > e.ChatMessage.Bits)
+							{
+								BitManager.CreateOrderWithChecks(e.ChatMessage.Bits);
+								return;
+							}
+
+							string cheerFromMsg = foundCheers[cheerIndex];
+							++cheerIndex;
 
 							// There is no static position in string to split.
-							string valueStr = new string(emote.Name.Where(c => char.IsDigit(c)).ToArray());
+							string valueStr = new string(cheerFromMsg.Where(c => char.IsDigit(c)).ToArray());
 							if (!int.TryParse(valueStr, out int amount))
 								continue;
 
-							Debug.LogInfo($"(BITS) Name: {emote.Name}, CheerAmount: {valueStr}, {amount}");
+							amount = Mathf.Min(amount, e.ChatMessage.Bits);
+
+							Debug.LogInfo($"(BITS) Name: {emote.Name}, MsgString: {cheerFromMsg}. Amount: {amount}");
+
+							totalBitCheered += amount;
 
 							// If texture is cached just create order,
 							// otherwise we queue up the order and wait
 							// for request to finish or timeout.
 							ImageTexture texture = GetTextureOrQueueRequest(emote.Id, amount);
 							if (texture != null)
-								BitManager.CreateOrderWithChecks(amount);
+								BitManager.CreateOrderWithCustomTexture(amount, emote.Id, texture);
 						}
+					}
+
+					// Safety
+					if (totalBitCheered < e.ChatMessage.Bits)
+					{
+						BitManager.CreateOrderWithChecks(e.ChatMessage.Bits - totalBitCheered);
 					}
 				}
 				else
@@ -678,29 +720,36 @@ namespace BitCup
 #if DEBUG
 			else if (e.ChatMessage.Message.StartsWith("!bbd"))
 			{
+				List<string> foundCheers = new List<string>(96);
 				string[] split = e.ChatMessage.Message.Split(" ");
 
-				string lowerName = split[1].ToLower();
-				if (lowerName.Contains("cheer"))
+				foreach (string s in split)
 				{
-					string valueStr = new string(lowerName.Where(c => char.IsDigit(c)).ToArray());
-					int amount = int.Parse(valueStr);
-
-					Debug.LogInfo($"(BITS) Name: {split[1]}, CheerAmount: {valueStr}, {amount}");
+					if (s.ToLower().Contains("cheer"))
+					{
+						foundCheers.Add(s);
+					}
 				}
 
-				foreach (var emote in e.ChatMessage.EmoteSet.Emotes)
+				int cheerIndex = 0;
+				foreach (Emote emote in e.ChatMessage.EmoteSet.Emotes)
 				{
-					ImageTexture texture = GetTextureOrQueueRequest(emote.Id, 1215);
+					string cheerFromMsg = foundCheers[cheerIndex];
+					++cheerIndex;
+
+					// There is no static position in string to split.
+					string valueStr = new string(cheerFromMsg.Where(c => char.IsDigit(c)).ToArray());
+					if (!int.TryParse(valueStr, out int amount))
+						continue;
+
+					Debug.LogInfo($"(BITS) Name: {emote.Name}, MsgString: {cheerFromMsg}. Amount: {amount}");
+
+					// If texture is cached just create order,
+					// otherwise we queue up the order and wait
+					// for request to finish or timeout.
+					ImageTexture texture = GetTextureOrQueueRequest(emote.Id, amount);
 					if (texture != null)
-					{
-						BitManager.CreateOrderWithCustomTexture(1215, emote.Id, texture);
-						Debug.LogInfo("Found texture!");
-					}
-					else
-					{
-						Debug.LogInfo("Didnt find texture!");
-					}
+						BitManager.CreateOrderWithCustomTexture(amount, emote.Id, texture);
 				}
 			}
 

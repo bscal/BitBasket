@@ -1,6 +1,8 @@
 ﻿using Godot.Collections;
 using Godot;
 using System;
+using System.Xml;
+using System.Linq;
 
 namespace BitCup
 {
@@ -18,14 +20,14 @@ namespace BitCup
 		const float RECONNECT_TIMER_START = 10.0f;
 		const string EVENTSUB_WEBSOCKET_URL = "wss://eventsub.wss.twitch.tv/ws";
 
-		string LastHypeTrainId;
+		int RecentIdIndex;
+		string[] RecentId = new string[8];
 
 		public EventSub(BitManager bitManager)
 		{
 			BitManager = bitManager;
 			Peer = new WebSocketPeer();
 			SessionId = string.Empty;
-			LastHypeTrainId = string.Empty;
 		}
 
 		public void UpdateEvents(float delta)
@@ -126,7 +128,7 @@ namespace BitCup
 		{
 			HttpRequest req = new HttpRequest();
 			BitManager.AddChild(req);
-			req.Timeout = 10;
+			req.Timeout = 30;
 			req.RequestCompleted += (result, responseCode, headers, body) =>
 			{
 				switch (responseCode)
@@ -158,9 +160,10 @@ namespace BitCup
 
 		private bool ValidateTime(string timestamp, int minutesAgo)
 		{
-			if (DateTime.TryParse(timestamp, out DateTime datetime))
+			DateTime time = FromRFC3339Time(timestamp);
+			if (time.Ticks != 0)
 			{
-				if (DateTime.Now.Subtract(datetime).TotalMinutes < minutesAgo)
+				if (DateTime.UtcNow.Subtract(time) < TimeSpan.FromMinutes(minutesAgo))
 				{
 					return true;
 				}
@@ -183,13 +186,8 @@ namespace BitCup
 						Debug.LogDebug("(EVENT) channel.hype_train.progress");
 						if (BitManager.Settings.EnableHypeTrainRain)
 						{
-							if (ValidateTime(e["started_at"].AsString(), 15))
-							{
-								LastHypeTrainId = e["id"].AsString();
-
-								int level = e["level"].AsInt32();
-								BitManager.CreateRainOrderProgress();
-							}
+							//int level = e["level"].AsInt32();
+							BitManager.CreateRainOrderProgress();
 						}
 					} break;
 				case "channel.hype_train.end":
@@ -197,13 +195,8 @@ namespace BitCup
 						Debug.LogDebug("(EVENT) channel.hype_train.end");
 						if (BitManager.Settings.EnableHypeTrainRain)
 						{
-							if (ValidateTime(e["ended_at"].AsString(), 5))
-							{
-								LastHypeTrainId = e["id"].AsString();
-
-								int level = e["level"].AsInt32();
-								BitManager.CreateRainOrder(level);
-							}
+							int level = e["level"].AsInt32();
+							BitManager.CreateRainOrder(level);
 						}
 					} break;
 			}
@@ -222,7 +215,17 @@ namespace BitCup
 			if (data.TryGetValue("metadata", out Variant metadata)
 				&& data.TryGetValue("payload", out Variant payload))
 			{
+				string message_id = metadata.AsGodotDictionary()["message_id"].AsString();
+				if (string.IsNullOrWhiteSpace(message_id))
+					return;
+
+				if (RecentId.Contains(message_id))
+					return;
+
 				Debug.LogInfo($"(EVENT_SUB) Packet Received {metadata.AsGodotDictionary()["message_type"].AsString()}");
+
+				RecentId[RecentIdIndex] = message_id;
+				RecentIdIndex = (RecentIdIndex + 1) % RecentId.Length;
 
 				switch (metadata.AsGodotDictionary()["message_type"].AsString())
 				{
@@ -282,7 +285,7 @@ namespace BitCup
 							""broadcaster_user_id"": ""1337"",
 							""broadcaster_user_login"": ""cool_user"",
 							""broadcaster_user_name"": ""Cool_User"",
-							""level"": 2,
+							""level"": 3,
 							""total"": 137,
 							""top_contributions"": [
 								{ ""user_id"": ""123"", ""user_login"": ""pogchamp"", ""user_name"": ""PogChamp"", ""type"": ""bits"", ""total"": 50 },
@@ -341,23 +344,48 @@ namespace BitCup
 				}
 				";
 
-			for (int i = 0; i < 5; ++i)
+			for (int i = 0; i < 2; ++i)
 			{
 				var json = new Json();
 				json.Parse(str2);
 				var data = json.Data.AsGodotDictionary();
-				data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["started_at"] = DateTime.Now.ToString();
+				data["metadata"].AsGodotDictionary()["message_id"] = "befa7b53-d79d-478f-86b9-120f112b044e" + i;
+				data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["started_at"] = ToRFC3339String(DateTime.UtcNow);
 				GD.Print(json.Data);
 				ParsePacket(data);
+
+				var json2 = new Json();
+				json2.Parse(str2);
+				var data2 = json2.Data.AsGodotDictionary();
+				data2["metadata"].AsGodotDictionary()["message_id"] = "befa7b53-d79d-478f-86b9-120f112b044e" + i;
+				data2["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["started_at"] = ToRFC3339String(DateTime.UtcNow);
+				ParsePacket(data2);
 			}
 
 			{
 				var json = new Json();
 				json.Parse(str);
 				var data = json.Data.AsGodotDictionary();
-				data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["ended_at"] = DateTime.Now.ToString();
+				data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["ended_at"] = ToRFC3339String(DateTime.UtcNow);
 				GD.Print(json.Data);
 				ParsePacket(data);
+			}
+		}
+
+		public static string ToRFC3339String(DateTime dateTime)
+		{
+			return XmlConvert.ToString(dateTime, XmlDateTimeSerializationMode.Utc);
+		}
+
+		public static DateTime FromRFC3339Time(string str)
+		{
+			try
+			{
+				return XmlConvert.ToDateTime(str, XmlDateTimeSerializationMode.Utc);
+			}
+			catch
+			{
+				return new DateTime();
 			}
 		}
 	}
