@@ -9,75 +9,80 @@ namespace BitCup
 	public class Cheermote
 	{
 		public string Prefix;
-		public int id;
+		public int Id;
 
 		public override bool Equals(object obj)
 		{
 			return obj is Cheermote cheermote
-				&& id == cheermote.id
+				&& Id == cheermote.Id
 				&& string.Equals(Prefix, cheermote.Prefix, StringComparison.CurrentCultureIgnoreCase);
 		}
 
 		public override int GetHashCode()
 		{
-			return HashCode.Combine(Prefix.ToLower(), id);
+			return HashCode.Combine(Prefix.ToLower(), Id);
 		}
 
 		public override string ToString()
 		{
-			return $"{Prefix.ToLower()}{id}";
+			return $"{Prefix.ToLower()}{Id}";
 		}
 	}
 
-	public class CheermoteRequestData
+	public struct CheermoteRequestData
 	{
 		public BitOrder Order;
 		public float Lifetime;
 	}
 
-	public class RequestImgData
+	public struct RequestImgData
 	{
 		public Cheermote Cheermote;
+		public CheermoteInfo CheermoteInfo;
+	}
+
+	public struct CheermoteInfo
+	{
 		public string Url;
+		public bool IsCustomEmote;
+
+		public CheermoteInfo(string url, bool isCustomEmote)
+		{
+			Url = url;
+			IsCustomEmote = isCustomEmote;
+		}
 	}
 
 	public class CheermotesManager
 	{
-		public Dictionary<Cheermote, string> CheermoteToUrl;
+		public Dictionary<Cheermote, CheermoteInfo> CheermoteToUrl;
 		public Dictionary<string, ImageTexture> PrefixToImageCache;
 
 		public bool DebugFlag;
 
-		private ConcurrentBag<CheermoteRequestData> CheermoteQueue;
+		private ConcurrentQueue<CheermoteRequestData> CheermoteQueue;
 		private ConcurrentQueue<RequestImgData> RequestImageQueue;
 
 		private BitManager BitManager;
-
-
-		public const string DEFAULT_1 = "cheer1";
-		public const string DEFAULT_100 = "cheer100";
-		public const string DEFAULT_1000 = "cheer1000";
-		public const string DEFAULT_5000 = "cheer5000";
-		public const string DEFAULT_10000 = "cheer10000";
 
 		public CheermotesManager(BitManager bitManager)
 		{
 			BitManager = bitManager;
 
-			CheermoteToUrl = new Dictionary<Cheermote, string>(64);
+			CheermoteToUrl = new Dictionary<Cheermote, CheermoteInfo>(64);
 			PrefixToImageCache = new Dictionary<string, ImageTexture>(64);
-			CheermoteQueue = new ConcurrentBag<CheermoteRequestData>();
+			CheermoteQueue = new ConcurrentQueue<CheermoteRequestData>();
 			RequestImageQueue = new ConcurrentQueue<RequestImgData>();
 
 			void AddCheerEmote(string name, int id, ImageTexture t)
 			{
 				var cheeremote = new Cheermote();
 				cheeremote.Prefix = name;
-				cheeremote.id = id;
+				cheeremote.Id = id;
 
 				Debug.LogDebug($"( Cheermotes ) Default {name} {id} {cheeremote}");
 
-				CheermoteToUrl.Add(cheeremote, string.Empty);
+				CheermoteToUrl.Add(cheeremote, new( string.Empty, false ));
 				PrefixToImageCache.Add(cheeremote.ToString(), t);
 			}
 
@@ -94,24 +99,37 @@ namespace BitCup
 			AddCheerEmote("Cheer", 1000, CompressedToImageTexture((CompressedTexture2D)BitManager.Bit1000Texture));
 			AddCheerEmote("Cheer", 100, CompressedToImageTexture((CompressedTexture2D)BitManager.Bit100Texture));
 			AddCheerEmote("Cheer", 1, CompressedToImageTexture((CompressedTexture2D)BitManager.Bit1Texture));
+
+#if DEBUG
+			var crenCheerTest1 = new Cheermote();
+			crenCheerTest1.Prefix = "crendorcheer";
+			crenCheerTest1.Id = 1;
+			CheermoteToUrl.Add(crenCheerTest1, new("https://d3aqoihi2n8ty8.cloudfront.net/partner-actions/7555574/f70a0f6f-1e64-4328-a5ae-abf3c8c56c5f/1/light/animated/1.5.gif", true));
+
+			var crenCheerTest1000 = new Cheermote();
+			crenCheerTest1000.Prefix = "crendorcheer";
+			crenCheerTest1000.Id = 1000;
+			CheermoteToUrl.Add(crenCheerTest1000, new("https://d3aqoihi2n8ty8.cloudfront.net/partner-actions/7555574/f70a0f6f-1e64-4328-a5ae-abf3c8c56c5f/1000/light/animated/1.5.gif", true));
+#endif
 		}
 
 		public void UpdateQueue(float dt)
 		{
 			while (RequestImageQueue.TryDequeue(out var requestData))
 			{
-				RequestImage(requestData.Cheermote, requestData.Url);
+				RequestImage(requestData.Cheermote, requestData.CheermoteInfo);
 			}
 
-			while (CheermoteQueue.TryTake(out CheermoteRequestData data))
+			if (CheermoteQueue.TryPeek(out CheermoteRequestData data))
 			{
 				data.Lifetime += dt;
 
-				if (data.Lifetime > 60)
+				if (data.Lifetime > 30)
 				{
 					// Hard coded timeout, uses default bits
-					BitManager.BitOrderDefaultTextures(data.Order);
+					BitOrderDefaultTextures(data.Order);
 					BitManager.BitOrders.Add(data.Order);
+					CheermoteQueue.TryDequeue(out var unused);
 					return;
 				}
 
@@ -126,12 +144,12 @@ namespace BitCup
 					}
 					else
 					{
-						CheermoteQueue.Add(data);
 						return;
 					}
 				}
 
 				BitManager.BitOrders.Add(data.Order);
+				CheermoteQueue.TryDequeue(out var unused2);
 			}
 		}
 
@@ -224,33 +242,50 @@ namespace BitCup
 			{
 				switch (type)
 				{
-					case BitTypes.Bit1: return PrefixToImageCache[DEFAULT_1];
-					case BitTypes.Bit100: return PrefixToImageCache[DEFAULT_100];
-					case BitTypes.Bit1000: return PrefixToImageCache[DEFAULT_1000];
-					case BitTypes.Bit5000: return PrefixToImageCache[DEFAULT_5000];
-					case BitTypes.Bit10000: return PrefixToImageCache[DEFAULT_10000];
-					default: Debug.Error("Invalid Type"); return PrefixToImageCache[DEFAULT_1];
+					case BitTypes.Bit1: return PrefixToImageCache[BitManager.DEFAULT_1];
+					case BitTypes.Bit100: return PrefixToImageCache[BitManager.DEFAULT_100];
+					case BitTypes.Bit1000: return PrefixToImageCache[BitManager.DEFAULT_1000];
+					case BitTypes.Bit5000: return PrefixToImageCache[BitManager.DEFAULT_5000];
+					case BitTypes.Bit10000: return PrefixToImageCache[BitManager.DEFAULT_10000];
+					default: Debug.Error("Invalid Type"); return PrefixToImageCache[BitManager.DEFAULT_1];
 				}
 			}
 		}
 
-		private void RequestImage(Cheermote cheermote, string url)
+		private void RequestImage(Cheermote cheermote, CheermoteInfo cheermoteInfo)
 		{
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
-			request.Timeout = 30;
+			request.Timeout = 20;
 
 			request.RequestCompleted += (long result, long responseCode, string[] headers, byte[] body) =>
 			{
 				if (responseCode == 200)
 				{
 					Image image = new Image();
-					var error = image.LoadPngFromBuffer(body);
-					if (error != Error.Ok)
+					Error loadImgError;
+
+					if (cheermoteInfo.IsCustomEmote)
 					{
-						Debug.LogErr("( EmoteRequest ) Error " + error.ToString());
+						// TODO Currently dont care if you not on windows
+						MemoryStream inStream = new MemoryStream(body);
+						System.Drawing.Image drawingImg = System.Drawing.Image.FromStream(inStream);
+
+						MemoryStream outStream = new MemoryStream();
+						drawingImg.Save(outStream, System.Drawing.Imaging.ImageFormat.Png);
+						loadImgError = image.LoadPngFromBuffer(outStream.ToArray());
+					}
+					else
+					{
+						loadImgError = image.LoadPngFromBuffer(body);
+					}
+
+					if (loadImgError != Error.Ok)
+					{
+						Debug.LogErr("( EmoteRequest ) Error " + loadImgError.ToString());
 						return;
 					}
+
 					ImageTexture imgTexture = new ImageTexture();
 					imgTexture.SetImage(image);
 
@@ -267,7 +302,7 @@ namespace BitCup
 				}
 			};
 
-			Error err = request.Request(url);
+			Error err = request.Request(cheermoteInfo.Url);
 			if (err != Error.Ok)
 			{
 				Debug.Error(err.ToString());
@@ -277,15 +312,35 @@ namespace BitCup
 		public static int CheermoteIdFromBits(int type)
 		{
 			if (type == (int)BitTypes.Bit10000)
-				return 10000;
+				return BitManager.BIT10000;
 			if (type == (int)BitTypes.Bit5000)
-				return 5000;
+				return BitManager.BIT5000;
 			if (type == (int)BitTypes.Bit1000)
-				return 1000;
+				return BitManager.BIT1000;
 			if (type == (int)BitTypes.Bit100)
-				return 100;
+				return BitManager.BIT100;
 			else
-				return 1;
+				return BitManager.BIT1;
+		}
+
+		public static string CheermoteDefaultTextureFromId(int id)
+		{
+			return "Cheer" + id;
+		}
+
+		public void BitOrderDefaultTextures(BitOrder order)
+		{
+			order.Texture[(int)BitTypes.Bit10000] = PrefixToImageCache[BitManager.DEFAULT_10000];
+			order.Texture[(int)BitTypes.Bit5000] = PrefixToImageCache[BitManager.DEFAULT_5000];
+			order.Texture[(int)BitTypes.Bit1000] = PrefixToImageCache[BitManager.DEFAULT_1000];
+			order.Texture[(int)BitTypes.Bit100] = PrefixToImageCache[BitManager.DEFAULT_100];
+			order.Texture[(int)BitTypes.Bit1] = PrefixToImageCache[BitManager.DEFAULT_1];
+
+			order.TextureId[(int)BitTypes.Bit10000] = BitManager.DEFAULT_10000;
+			order.TextureId[(int)BitTypes.Bit5000] = BitManager.DEFAULT_5000;
+			order.TextureId[(int)BitTypes.Bit1000] = BitManager.DEFAULT_1000;
+			order.TextureId[(int)BitTypes.Bit100] = BitManager.DEFAULT_100;
+			order.TextureId[(int)BitTypes.Bit1] = BitManager.DEFAULT_1;
 		}
 
 		public bool Exists(Cheermote cheermote)
@@ -293,18 +348,18 @@ namespace BitCup
 			return CheermoteToUrl.ContainsKey(cheermote);
 		}
 
-		internal void Add(Cheermote cheermote, string url)
+		internal void Add(Cheermote cheermote, string url, bool isCustomEmote)
 		{
 			if (!Exists(cheermote))
 			{
-				Debug.LogInfo($"( RequestCheermotes ) Added {cheermote.Prefix}, {cheermote.id}, {url}");
-				CheermoteToUrl.Add(cheermote, url);
+				Debug.LogInfo($"( RequestCheermotes ) Added {cheermote.Prefix}, {cheermote.Id}, {url}");
+				CheermoteToUrl.Add(cheermote, new CheermoteInfo(url, isCustomEmote));
 			}
 			else
 			{
-#if DEBUG	
-				string foundUrl = CheermoteToUrl[cheermote];
-				Debug.LogInfo($"( RequestCheermotes ) Exists {cheermote.Prefix}, {cheermote.id}, {foundUrl}");
+#if DEBUG
+				CheermoteInfo found = CheermoteToUrl[cheermote];
+				Debug.LogInfo($"( RequestCheermotes ) Exists {cheermote.Prefix}, {cheermote.Id}, {found.Url}");
 #endif
 			}
 		}
@@ -323,9 +378,9 @@ namespace BitCup
 				{
 					Cheermote cheermotePerBit = new();
 					cheermotePerBit.Prefix = cheermote.Prefix;
-					cheermotePerBit.id = CheermoteIdFromBits(i);
-					Debug.LogDebug($"Proccessing sub-bit {cheermotePerBit.Prefix}, for {cheermotePerBit.id} {bits}");
-					if (CheermoteToUrl.TryGetValue(cheermotePerBit, out string url))
+					cheermotePerBit.Id = CheermoteIdFromBits(i);
+					Debug.LogDebug($"Proccessing sub-bit {cheermotePerBit.Prefix}, for {cheermotePerBit.Id} {bits}");
+					if (CheermoteToUrl.TryGetValue(cheermotePerBit, out CheermoteInfo info))
 					{
 						data.Order.TextureId[i] = cheermotePerBit.ToString();
 
@@ -334,7 +389,7 @@ namespace BitCup
 						{
 							RequestImgData requestData = new();
 							requestData.Cheermote = cheermotePerBit;
-							requestData.Url = url;
+							requestData.CheermoteInfo = info;
 							RequestImageQueue.Enqueue(requestData);
 							
 							Debug.LogDebug($"Enqueuing {cheermote.ToString()}");
@@ -351,7 +406,7 @@ namespace BitCup
 				}
 			}
 
-			CheermoteQueue.Add(data);
+			CheermoteQueue.Enqueue(data);
 		}
 	}
 }

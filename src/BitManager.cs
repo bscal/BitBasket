@@ -1,7 +1,6 @@
 using BitCup;
 using Godot;
 using System.Collections.Generic;
-using System.Threading;
 
 public enum State
 {
@@ -69,6 +68,17 @@ public partial class BitManager : Node2D
 
 	public const int MAX_BITS = 1024;
 
+	public const string DEFAULT_1 = "cheer1";
+	public const string DEFAULT_100 = "cheer100";
+	public const string DEFAULT_1000 = "cheer1000";
+	public const string DEFAULT_5000 = "cheer5000";
+	public const string DEFAULT_10000 = "cheer10000";
+	public const int BIT1 = 1;
+	public const int BIT100 = 100;
+	public const int BIT1000 = 1000;
+	public const int BIT5000 = 5000;
+	public const int BIT10000 = 10000;
+
 	[Export]
 	public Texture Bit1Texture;
 	[Export]
@@ -107,6 +117,7 @@ public partial class BitManager : Node2D
 
 	private float Timer;
 	private RandomNumberGenerator RNG = new RandomNumberGenerator();
+	private int BitRainRandomIndex;
 
 	const int VersionBitSerialization = 4;
 	const string KEY_SERIAL_VERSION = "VersionBitSerialization";
@@ -128,7 +139,7 @@ public partial class BitManager : Node2D
 
 		Settings.Reload();
 
-		TwitchManager = new TwitchManager(this);	
+		TwitchManager = new TwitchManager(this);
 
 		EventSub = new EventSub(this);
 
@@ -137,6 +148,8 @@ public partial class BitManager : Node2D
 
 		CheermotesManager = new CheermotesManager(this);
 		CheermotesManager.LoadImages();
+
+		RNG.Randomize();
 
 		Node2D spawnNode = GetNode<Node2D>("./SpawnPosition");
 		if (spawnNode == null)
@@ -223,11 +236,13 @@ public partial class BitManager : Node2D
 		{
 			case (State.PreStart):
 				{
-				} break;
+				}
+				break;
 			case (State.OAuth):
 				{
 					TwitchManager.OAuthServerUpdate();
-				} break;
+				}
+				break;
 			case (State.WaitValidating):
 				{
 					if (TwitchManager.Client != null
@@ -236,17 +251,19 @@ public partial class BitManager : Node2D
 					{
 						ClientFullyReady();
 					}
-				} break;
+				}
+				break;
 			case (State.Running):
 				{
 #if DEBUG
 					if (CheermotesManager.DebugFlag)
 					{
 						CheermotesManager.DebugFlag = false;
-						string testIRC = "@badge-info=;badges=staff/1,bits/1000;bits=1511;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1000 kappa400 cheer111";
-						TwitchManager.Client.OnReadLineTest(testIRC);
+						//string testIRC = "@badge-info=;badges=staff/1,bits/1000;bits=2521;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1000 kappa400 crendorcheer1010 cheer111";
+						//TwitchManager.Client.OnReadLineTest(testIRC);
+						string testIRC2 = "@badge-info=;badges=staff/1,bits/1000;bits=115;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer100 crendorCheer10";
+						TwitchManager.Client.OnReadLineTest(testIRC2);
 					}
-
 #endif
 
 					CheermotesManager.UpdateQueue((float)delta);
@@ -322,17 +339,17 @@ public partial class BitManager : Node2D
 	{
 		BitOrder res = new();
 
-		res.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / 10000);
-		amount %= 10000;
+		res.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / BIT10000);
+		amount %= BIT10000;
 
-		res.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / 5000);
-		amount %= 5000;
+		res.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / BIT5000);
+		amount %= BIT5000;
 
-		res.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / 1000);
-		amount %= 1000;
+		res.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / BIT1000);
+		amount %= BIT1000;
 
-		res.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / 100);
-		amount %= 100;
+		res.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / BIT100);
+		amount %= BIT100;
 
 		res.BitAmounts[(int)BitTypes.Bit1] = (short)(amount);
 
@@ -345,19 +362,7 @@ public partial class BitManager : Node2D
 
 		BitOrder bitOrder = CreateBitOrderSplitBits(amount);
 
-		BitOrderDefaultTextures(bitOrder);
-
-		BitOrders.Add(bitOrder);
-	}
-
-	public void CreateOrderWithSingleBits(int amount)
-	{
-		amount = Mathf.Clamp(amount, 1, short.MaxValue);
-
-		BitOrder bitOrder = new();
-		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (short)amount;
-
-		BitOrderDefaultTextures(bitOrder);
+		CheermotesManager.BitOrderDefaultTextures(bitOrder);
 
 		BitOrders.Add(bitOrder);
 	}
@@ -367,7 +372,7 @@ public partial class BitManager : Node2D
 		BitOrder order = new BitOrder();
 		order.Type = OrderType.Rain;
 		order.BitAmounts[(int)BitTypes.Bit1] = (short)RNG.RandiRange(25, 50);
-		BitOrderDefaultTextures(order);
+		CheermotesManager.BitOrderDefaultTextures(order);
 		BitOrders.Add(order);
 	}
 
@@ -377,23 +382,27 @@ public partial class BitManager : Node2D
 
 		BitOrder order = new BitOrder();
 		order.Type = OrderType.Rain;
-		BitOrderDefaultTextures(order);
+		CheermotesManager.BitOrderDefaultTextures(order);
 
-		switch (level)
-		{
-			case 1: order.BitAmounts[(int)BitTypes.Bit100] = 25; break;
-			case 2: order.BitAmounts[(int)BitTypes.Bit100] = 75; break;
-			case 3: order.BitAmounts[(int)BitTypes.Bit1000] = 75; break;
-			case 4: order.BitAmounts[(int)BitTypes.Bit5000] = 75; break;
-			case 5:
-				{
-					order.BitAmounts[(int)BitTypes.Bit1000] = (short)RNG.RandiRange(50, 75);
-					order.BitAmounts[(int)BitTypes.Bit5000] = (short)RNG.RandiRange(50, 75);
-					order.BitAmounts[(int)BitTypes.Bit10000] = (short)RNG.RandiRange(50, 75);
-				}
-				break;
-		}
+		order.BitAmounts[(int)BitTypes.Bit1] = (short)RNG.RandiRange(100, 200);
+		order.BitAmounts[(int)BitTypes.Bit100] = (short)(RNG.RandiRange(20 * level, 30 * level) + 50);
+		if (level >= 3)
+			order.BitAmounts[(int)BitTypes.Bit1000] = (short)RNG.RandiRange(25 * level, 30 * level);
+		if (level >= 4)
+			order.BitAmounts[(int)BitTypes.Bit5000] = (short)RNG.RandiRange(20 * level, 30 * level);
+		if (level >= 5)
+			order.BitAmounts[(int)BitTypes.Bit10000] = 10;
+
 		BitOrders.Add(order);
+
+		if (level >= 3)
+		{
+			BitOrder fillOrder = new();
+			fillOrder.Type = OrderType.Rain;
+			fillOrder.BitAmounts[(int)BitTypes.Bit100] = 150;
+			CheermotesManager.BitOrderDefaultTextures(fillOrder);
+			BitOrders.Add(fillOrder);
+		}
 	}
 
 	public int SpawnNode(BitTypes type, Vector2 spawnPos, short bitPower, string textureId, ImageTexture texture)
@@ -495,35 +504,20 @@ public partial class BitManager : Node2D
 		return BitStatesSparse[idx];
 	}
 
-	public void BitOrderDefaultTextures(BitOrder order)
-	{
-		order.Texture[(int)BitTypes.Bit10000] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_10000];
-		order.Texture[(int)BitTypes.Bit5000] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_5000];
-		order.Texture[(int)BitTypes.Bit1000] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_1000];
-		order.Texture[(int)BitTypes.Bit100] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_100];
-		order.Texture[(int)BitTypes.Bit1] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_1];
-
-		order.TextureId[(int)BitTypes.Bit10000] = CheermotesManager.DEFAULT_10000;
-		order.TextureId[(int)BitTypes.Bit5000] = CheermotesManager.DEFAULT_5000;
-		order.TextureId[(int)BitTypes.Bit1000] = CheermotesManager.DEFAULT_1000;
-		order.TextureId[(int)BitTypes.Bit100] = CheermotesManager.DEFAULT_100;
-		order.TextureId[(int)BitTypes.Bit1] = CheermotesManager.DEFAULT_1;
-	}
-
-
 	private bool BitOrderProcessNext(float dt)
 	{
 		if (BitOrders.Count == 0)
 			return false;
 
 		bool isFinished = true;
+		int lastBitUsed = -1;
 		BitOrder order = BitOrders[0];
 
 		float delay;
 		if (order.Type == OrderType.Bits)
 			delay = Settings.DropDelay + 0.01f;
 		else
-			delay = 0.05f;
+			delay = 0.035f;
 
 		Timer += dt;
 		if (Timer < delay)
@@ -531,30 +525,56 @@ public partial class BitManager : Node2D
 
 		Timer = 0;
 
-		for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
+		switch (order.Type)
 		{
-			if (order.BitAmounts[i] > 0)
-			{
-				short bitPower;
-				if (Settings.CombineBits && i != (int)BitTypes.Bit1 && order.Type == OrderType.Bits)
+			case OrderType.Bits:
 				{
-					bitPower = order.BitAmounts[i];
-					order.BitAmounts[i] = 0;
+					for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
+					{
+						if (order.BitAmounts[i] > 0)
+						{
+							lastBitUsed = i;
+
+							short bitPower;
+							if (Settings.CombineBits && i != (int)BitTypes.Bit1)
+							{
+								bitPower = order.BitAmounts[i];
+								order.BitAmounts[i] = 0;
+							}
+							else
+							{
+								bitPower = 1;
+								--order.BitAmounts[i];
+							}
+
+							// Longer inbetween different bit amonunts
+							if (order.BitAmounts[i] <= 0)
+								Timer = -2f;
+
+							SpawnNode((BitTypes)i, SpawnPosition, bitPower, order.TextureId[i], order.Texture[i]);
+
+							// Only do 1 bit per update
+							break;
+						}
+					}
 				}
-				else
-				{
-					bitPower = 1;
-					--order.BitAmounts[i];
-				}
-
-				if (order.BitAmounts[i] <= 0)
-					Timer = -1.25f;
-
-				SpawnNode((BitTypes)i, SpawnPosition, bitPower, order.TextureId[i], order.Texture[i]);
-
-				// Only do 1 bit per update
 				break;
-			}
+			case OrderType.Rain:
+				{
+					for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
+					{
+						BitRainRandomIndex = (BitRainRandomIndex + 1) % (int)BitTypes.MaxBitTypes;
+						if (BitRainRandomIndex == (int)BitTypes.Bit1000 && RNG.Randf() > .25f)
+							continue;
+
+						if (order.BitAmounts[BitRainRandomIndex] > 0)
+						{
+							--order.BitAmounts[BitRainRandomIndex];
+							SpawnNode((BitTypes)BitRainRandomIndex, SpawnPosition, 1, order.TextureId[BitRainRandomIndex], order.Texture[BitRainRandomIndex]);
+							break;
+						}
+					}
+				} break;
 		}
 
 		for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
@@ -567,15 +587,37 @@ public partial class BitManager : Node2D
 
 		if (isFinished)
 		{
-			if (BitOrders.Count > 1 && BitOrders[1].Type == OrderType.Rain)
-			{
+			if (BitOrders.Count > 1 && (lastBitUsed == (int)BitTypes.Bit1 && DoesOrderContainOnly1Bits(BitOrders[1])))
 				Timer = 0f;
-			}
 			else
-				Timer = -2.1f;
+				Timer = -3f; // Long wait inbetween orders
 		}
 
 		return isFinished;
+	}
+
+	private bool DoesOrderContainOnly1Bits(BitOrder order)
+	{
+		if (order.BitAmounts[(int)BitTypes.Bit1] == 0)
+			return false;
+
+		for (int i = 1; i < (int)BitTypes.MaxBitTypes; ++i)
+		{
+			if (order.BitAmounts[i] != 0)
+				return false;
+		}
+
+		return true;
+	}
+
+	private bool IsOrderEmptyBut10000(BitOrder order)
+	{
+		bool isEmpty = order.BitAmounts[(int)BitTypes.Bit1] == 0
+			&& order.BitAmounts[(int)BitTypes.Bit100] == 0
+			&& order.BitAmounts[(int)BitTypes.Bit1000] == 0
+			&& order.BitAmounts[(int)BitTypes.Bit5000] == 0;
+
+		return isEmpty;
 	}
 
 	private void BoundsArea_OnBodyExited(Node2D body)

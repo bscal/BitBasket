@@ -1,7 +1,6 @@
 ﻿using Godot;
 using System;
 using System.Collections.Generic;
-using TwitchLib.Api.Helix;
 using static Godot.HttpClient;
 
 namespace BitCup
@@ -520,17 +519,23 @@ namespace BitCup
 				{
 					string prefix = item.AsGodotDictionary()["prefix"].AsString();
 					var tiers = item.AsGodotDictionary()["tiers"].AsGodotArray();
+					string type = item.AsGodotDictionary()["type"].AsString();
+					bool isChannelCustom = type == "channel_custom";
 
 					foreach (var tier in tiers)
 					{
 						int id = int.Parse(tier.AsGodotDictionary()["id"].AsString());
-						string url = tier.AsGodotDictionary()["images"].AsGodotDictionary()["light"].AsGodotDictionary()["static"].AsGodotDictionary()["2"].AsString();
+						string url;
+						if (isChannelCustom)
+							url = tier.AsGodotDictionary()["images"].AsGodotDictionary()["light"].AsGodotDictionary()["animated"].AsGodotDictionary()["1.5"].AsString();
+						else
+							url = tier.AsGodotDictionary()["images"].AsGodotDictionary()["light"].AsGodotDictionary()["static"].AsGodotDictionary()["1.5"].AsString();
 
 						Cheermote cheermote = new Cheermote();
 						cheermote.Prefix = prefix;
-						cheermote.id = id;
+						cheermote.Id = id;
 
-						BitManager.CheermotesManager.Add(cheermote, url);
+						BitManager.CheermotesManager.Add(cheermote, url, isChannelCustom);
 					}
 				}
 
