@@ -448,7 +448,7 @@ public partial class UIController : Node
 			BitManager.Settings.Save();
 		};
 
-		SubBitsAmount = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupCooldown/LineEdit");
+		SubBitsAmount = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/SubBitsAmount/LineEdit");
 		Debug.Assert(SubBitsAmount != null);
 		SubBitsAmount.Text = BitManager.Settings.SubBitsAmount.ToString();
 		SubBitsAmount.TextChanged += (text) =>
