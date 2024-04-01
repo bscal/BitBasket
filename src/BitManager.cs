@@ -495,7 +495,7 @@ public partial class BitManager : Node2D
 		return BitStatesSparse[idx];
 	}
 
-	private void BitOrderDefaultTextures(BitOrder order)
+	public void BitOrderDefaultTextures(BitOrder order)
 	{
 		order.Texture[(int)BitTypes.Bit10000] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_10000];
 		order.Texture[(int)BitTypes.Bit5000] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_5000];

@@ -33,7 +33,6 @@ namespace BitCup
 	{
 		public BitOrder Order;
 		public float Lifetime;
-		public float UpdateTimer;
 	}
 
 	public class RequestImgData
@@ -104,16 +103,15 @@ namespace BitCup
 				RequestImage(requestData.Cheermote, requestData.Url);
 			}
 
-			while (CheermoteQueue.TryTake(out var data))
+			while (CheermoteQueue.TryTake(out CheermoteRequestData data))
 			{
 				data.Lifetime += dt;
-				data.UpdateTimer += dt;
 
-				if (data.Lifetime > 10)
+				if (data.Lifetime > 60)
 				{
 					// Hard coded timeout, uses default bits
+					BitManager.BitOrderDefaultTextures(data.Order);
 					BitManager.BitOrders.Add(data.Order);
-					Debug.LogDebug("TESTF");
 					return;
 				}
 
@@ -240,7 +238,7 @@ namespace BitCup
 		{
 			HttpRequest request = new HttpRequest();
 			BitManager.AddChild(request);
-			request.Timeout = 10;
+			request.Timeout = 30;
 
 			request.RequestCompleted += (long result, long responseCode, string[] headers, byte[] body) =>
 			{
