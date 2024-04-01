@@ -69,6 +69,8 @@ public partial class UIController : Node
 	private Button ButtonFillTheCupCreateUpdate;
 
 	private CheckBox EnableSubBits;
+	private CheckBox SubBitsAsCheer;
+	private LineEdit SubBitsAmount;
 	private CheckBox EnableHypeTrainRain;
 
 	private const string UI_URL = "../Container/UI/";
@@ -380,6 +382,8 @@ public partial class UIController : Node
 			CheckBoxCombineBits.ButtonPressed = BitManager.Settings.CombineBits;
 			EnableHypeTrainRain.ButtonPressed = BitManager.Settings.EnableHypeTrainRain;
 			EnableSubBits.ButtonPressed = BitManager.Settings.EnableSubBits;
+			SubBitsAsCheer.ButtonPressed = BitManager.Settings.SubBitsAsCheer;
+			SubBitsAmount.Text = BitManager.Settings.SubBitsAmount.ToString();
 			LineEditFillTheCupBits.Text = BitManager.Settings.FillTheCupBits.ToString();
 			LineEditFillTheCupCooldown.Text = BitManager.Settings.FillTheCupCooldown.ToString();
 			LineEditFillTheCupCost.Text = BitManager.Settings.FillTheCupCost.ToString();
@@ -432,6 +436,24 @@ public partial class UIController : Node
 		EnableSubBits.Pressed += () => 
 		{ 
 			BitManager.Settings.EnableSubBits = !BitManager.Settings.EnableSubBits;
+			BitManager.Settings.Save();
+		};
+
+		SubBitsAsCheer = GetNode<CheckBox>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/SubBitsAsCheer");
+		Debug.Assert(SubBitsAsCheer != null);
+		SubBitsAsCheer.ButtonPressed = BitManager.Settings.SubBitsAsCheer;
+		SubBitsAsCheer.Pressed += () =>
+		{
+			BitManager.Settings.SubBitsAsCheer = !BitManager.Settings.SubBitsAsCheer;
+			BitManager.Settings.Save();
+		};
+
+		SubBitsAmount = GetNode<LineEdit>("/root/Base/Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/FillCupCooldown/LineEdit");
+		Debug.Assert(SubBitsAmount != null);
+		SubBitsAmount.Text = BitManager.Settings.SubBitsAmount.ToString();
+		SubBitsAmount.TextChanged += (text) =>
+		{
+			BitManager.Settings.SubBitsAmount = int.Parse(text);
 			BitManager.Settings.Save();
 		};
 

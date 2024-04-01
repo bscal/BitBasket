@@ -38,6 +38,8 @@ namespace BitCup
 		public bool FillTheCupPerStream;
 
 		public bool EnableSubBits;
+		public bool SubBitsAsCheer;
+		public int SubBitsAmount;
 		public bool EnableHypeTrainRain;
 
 		public bool ShouldAutoConnect;
@@ -99,6 +101,8 @@ namespace BitCup
 			FillTheCupCooldown = (int)data.GetValueOrDefault("FillTheCupCooldown", 0);
 			FillTheCupPerStream = (bool)data.GetValueOrDefault("FillTheCupPerStream", false);
 			EnableSubBits = (bool)data.GetValueOrDefault("EnableSubBits", false);
+			SubBitsAsCheer = (bool)data.GetValueOrDefault("SubBitsAsCheer", false);
+			SubBitsAmount = (int)data.GetValueOrDefault("SubBitsAmount", 1);
 			EnableHypeTrainRain = (bool)data.GetValueOrDefault("EnableHypeTrainRain", false);
 		}
 
@@ -129,6 +133,8 @@ namespace BitCup
 			{ "FillTheCupCooldown", Variant.CreateFrom(FillTheCupCooldown) },
 			{ "FillTheCupPerStream", Variant.CreateFrom(FillTheCupPerStream) },
 			{ "EnableSubBits", Variant.CreateFrom(EnableSubBits) },
+			{ "SubBitsAsCheer", Variant.CreateFrom(SubBitsAsCheer) },
+			{ "SubBitsAmount", Variant.CreateFrom(SubBitsAmount) },
 			{ "EnableHypeTrainRain", Variant.CreateFrom(EnableHypeTrainRain) },
 		};
 

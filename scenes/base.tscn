@@ -589,6 +589,39 @@ size_flags_horizontal = 0
 theme_override_font_sizes/font_size = 17
 text = "Enable Sub Bits"
 
+[node name="SubBitsAsCheer" type="CheckBox" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+tooltip_text = "If enabled, treat bits from a sub the
+same as a cheer. As in the total amount
+is distributed between bit sizes. If disabled,
+the total amount will only be in 1 bits
+"
+theme_override_font_sizes/font_size = 17
+text = "Sub Bits As Cheer"
+
+[node name="SubBitsAmount" type="HBoxContainer" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+tooltip_text = "How many bits is a sub worth.
+Total = this # * months * tier of sub"
+
+[node name="Label" type="Label" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/SubBitsAmount"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+size_flags_horizontal = 7
+size_flags_vertical = 5
+text = "Sub Bits Amount"
+vertical_alignment = 1
+
+[node name="LineEdit" type="LineEdit" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer/SubBitsAmount"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "1
+"
+max_length = 16
+
 [node name="EnableHypeTrainRain" type="CheckBox" parent="Container3/AspectRatioContainer/VSplitContainer/Margin/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 0

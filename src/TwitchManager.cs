@@ -353,8 +353,11 @@ namespace BitCup
 			else if (plan == SubscriptionPlan.Tier3)
 				tier = 3;
 
-			int convertedToBits = 100 * months * tier;
-			BitManager.CreateOrderWithChecks(convertedToBits);
+			int convertedToBits = BitManager.Settings.SubBitsAmount * months * tier;
+			if (BitManager.Settings.SubBitsAsCheer)
+				BitManager.CreateOrderWithChecks(convertedToBits);
+			else
+				BitManager.CreateOrderWithSingleBits(convertedToBits);
 		}
 
 		private void Client_OnConnected(object sender, OnConnectedArgs e)
@@ -434,7 +437,7 @@ namespace BitCup
 					if (totalBitsFound < bits)
 					{
 						int bitDifference = bits - totalBitsFound;
-						//BitManager.CreateOrderWithChecks(bitDifference);
+						BitManager.CreateOrderWithChecks(bitDifference);
 					}
 				}
 				else

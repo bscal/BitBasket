@@ -350,6 +350,18 @@ public partial class BitManager : Node2D
 		BitOrders.Add(bitOrder);
 	}
 
+	public void CreateOrderWithSingleBits(int amount)
+	{
+		amount = Mathf.Clamp(amount, 1, short.MaxValue);
+
+		BitOrder bitOrder = new();
+		bitOrder.BitAmounts[(int)BitTypes.Bit1] = (short)amount;
+
+		BitOrderDefaultTextures(bitOrder);
+
+		BitOrders.Add(bitOrder);
+	}
+
 	public void CreateRainOrderProgress()
 	{
 		BitOrder order = new BitOrder();
@@ -536,7 +548,7 @@ public partial class BitManager : Node2D
 				}
 
 				if (order.BitAmounts[i] <= 0)
-					Timer = -2;
+					Timer = -1.25f;
 
 				SpawnNode((BitTypes)i, SpawnPosition, bitPower, order.TextureId[i], order.Texture[i]);
 
@@ -560,7 +572,7 @@ public partial class BitManager : Node2D
 				Timer = 0f;
 			}
 			else
-				Timer = -3;
+				Timer = -2.1f;
 		}
 
 		return isFinished;
