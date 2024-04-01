@@ -1,6 +1,7 @@
 ﻿using Godot;
 using System;
 using System.Collections.Generic;
+using TwitchLib.Api.Helix;
 using static Godot.HttpClient;
 
 namespace BitCup
@@ -482,6 +483,56 @@ namespace BitCup
 			else
 			{
 				Debug.LogInfo("Error updating redeems " + responseCode);
+			}
+		}
+
+		public void RequestCheermotes()
+		{
+			string URL = $"https://api.twitch.tv/helix/bits/cheermotes?broadcaster_id={BitManager.User.BroadcasterId}";
+			string[] headers = new string[]
+			{
+				"Authorization: Bearer " + BitManager.User.OAuth,
+				"Client-Id: " + TwitchManager.CLIENT_ID
+			};
+
+			HttpRequest request = new HttpRequest();
+			BitManager.AddChild(request);
+			request.RequestCompleted += RequestCheermotes_RequestCompleted;
+			request.Timeout = 10;
+			Error err = request.Request(URL, headers, Method.Get);
+			if (err != Error.Ok)
+			{
+				Debug.Error(err.ToString());
+			}
+		}
+
+		private void RequestCheermotes_RequestCompleted(long result, long responseCode, string[] headers, byte[] body)
+		{
+			if (responseCode == 200)
+			{
+				var json = new Json();
+				json.Parse(body.GetStringFromUtf8());
+				var response = json.Data.AsGodotDictionary();
+
+				var data = response["data"].AsGodotArray();
+
+				foreach ( var item in data )
+				{
+					string prefix = item.AsGodotDictionary()["prefix"].AsString();
+					var tiers = item.AsGodotDictionary()["tiers"].AsGodotArray();
+
+					foreach (var tier in tiers)
+					{
+						int id = int.Parse(tier.AsGodotDictionary()["id"].AsString());
+						string url = tier.AsGodotDictionary()["images"].AsGodotDictionary()["light"].AsGodotDictionary()["static"].AsGodotDictionary()["2"].AsString();
+
+						Cheermote cheermote = new Cheermote();
+						cheermote.Prefix = prefix;
+						cheermote.id = id;
+
+						BitManager.CheermotesManager.Add(cheermote, url);
+					}
+				}
 			}
 		}
 	}

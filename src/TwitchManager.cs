@@ -9,7 +9,6 @@ using Godot;
 using TwitchLib.Communication.Events;
 using TwitchLib.Client.Enums;
 using System.Collections.Generic;
-using System.IO;
 
 namespace BitCup
 {
@@ -31,44 +30,10 @@ namespace BitCup
 		StreamPeerTcp StreamPeerTcp;
 		string OAuthBuffer;
 
-		struct BitOrderQueueData
-		{
-			public string EmoteId;
-			public int BitAmount;
-			public float Lifetime;
-			public bool HasSendHTTPRequest;
-		}
-
-		List<BitOrderQueueData> EmoteRequestQueue;
-		public Dictionary<string, ImageTexture> TextureCache;
-
-		public const string DEFAULT_1 = "default1";
-		public const string DEFAULT_100 = "default100";
-		public const string DEFAULT_1000 = "default1000";
-		public const string DEFAULT_5000 = "default5000";
-		public const string DEFAULT_10000 = "default10000";
-
 		public TwitchManager(BitManager bitManager)
 		{
 			Debug.Assert(bitManager != null);
 			BitManager = bitManager;
-
-			EmoteRequestQueue = new(64);
-			TextureCache = new(64);
-
-			ImageTexture CompressedToImageTexture(CompressedTexture2D t)
-			{
-				Image i = t.GetImage();
-				ImageTexture res = new();
-				res.SetImage(i);
-				return res;
-			}
-
-			TextureCache.Add(DEFAULT_10000, CompressedToImageTexture((CompressedTexture2D)BitManager.Bit10000Texture));
-			TextureCache.Add(DEFAULT_5000, CompressedToImageTexture((CompressedTexture2D)BitManager.Bit5000Texture));
-			TextureCache.Add(DEFAULT_1000, CompressedToImageTexture((CompressedTexture2D)BitManager.Bit1000Texture));
-			TextureCache.Add(DEFAULT_100, CompressedToImageTexture((CompressedTexture2D)BitManager.Bit100Texture));
-			TextureCache.Add(DEFAULT_1, CompressedToImageTexture((CompressedTexture2D)BitManager.Bit1Texture));
 		}
 
 		public void FetchNewOAuth()
@@ -372,7 +337,7 @@ namespace BitCup
 
 		private void Client_OnResub(object sender, OnReSubscriberArgs e)
 		{
-			int months = e.ReSubscriber.Months;
+			int months = int.TryParse(e.ReSubscriber.MsgParamCumulativeMonths, out int value) ? value : 1;
 			var plan = e.ReSubscriber.SubscriptionPlan;
 			HandleSub(months, plan);
 		}
@@ -417,211 +382,14 @@ namespace BitCup
 			Debug.LogInfo(e.Data);
 		}
 
-		public void ProcessQueues(float dt)
-		{
-			// Will be empty the majority of the time, and low chance
-			// of handling several requests at a time.
-			for (int i = EmoteRequestQueue.Count - 1; i >= 0; --i)
-			{
-				BitOrderQueueData newData = EmoteRequestQueue[i];
-
-				if (!newData.HasSendHTTPRequest)
-				{
-					// TwitchLib chatmessage event is on another thread
-					// but never tells you? lol
-					newData.HasSendHTTPRequest = true;
-					RequestImage(newData.EmoteId);
-				}
-				else
-				{
-					newData.Lifetime += dt;
-					if (newData.Lifetime > 10)
-					{
-						// Hard coded timeout, uses default bits
-						BitManager.CreateOrderWithChecks(newData.BitAmount);
-						EmoteRequestQueue.RemoveAt(i);
-						return;
-					}
-
-					if (TextureCache.TryGetValue(newData.EmoteId, out var bitTexture))
-					{
-						BitManager.CreateOrderWithCustomTexture(newData.BitAmount, newData.EmoteId, bitTexture);
-						EmoteRequestQueue.RemoveAt(i);
-						return;
-					}
-				}
-
-				EmoteRequestQueue[i] = newData;
-			}
-		}
-
-		public void SaveImages()
-		{
-			string dirPath = Path.Combine(Directory.GetCurrentDirectory(), "cache");
-
-			Directory.CreateDirectory(dirPath);
-
-			foreach (var pair in TextureCache)
-			{
-				if (string.IsNullOrWhiteSpace(pair.Key))
-					continue;
-
-				if (pair.Key.StartsWith("default"))
-					continue;
-
-				string filePath = Path.Combine(dirPath, pair.Key + ".png");
-
-				Error err = pair.Value.GetImage().SavePng(filePath);
-				if (err != Error.Ok)
-				{
-					Debug.Error(err.ToString());
-				}
-			}
-		}
-
-		public void LoadImages()
-		{
-			string dirPath = Path.Combine(Directory.GetCurrentDirectory(), "cache");
-			if (!Directory.Exists(dirPath))
-				return;
-			
-			List<string> filesToRemove = new(16);
-
-			string[] files = Directory.GetFiles(dirPath);
-			foreach (string filePath in files)
-			{
-				try
-				{
-					DateTime creationTime = File.GetCreationTime(filePath);
-					if (creationTime.Subtract(DateTime.Now) > TimeSpan.FromDays(15.0))
-					{
-						filesToRemove.Add(filePath);
-						continue;
-					}
-
-					if (filePath.EndsWith(".png"))
-					{
-						Image image = Image.LoadFromFile(filePath);
-
-						string fileBaseName = filePath.GetFile().GetBaseName();
-
-						ImageTexture imgTexture = new ImageTexture();
-						imgTexture.SetImage(image);
-
-						Debug.LogInfo($"Loaded {fileBaseName} emote from file cache!");
-
-						TextureCache.TryAdd(fileBaseName, imgTexture);
-					}
-				}
-				catch (Exception ex)
-				{
-					Debug.LogDebug(ex.ToString());
-					continue;
-				}
-			}
-
-			foreach(string fileName in filesToRemove)
-			{
-				File.Delete(fileName);
-			}
-		}
-
-		/// <summary>
-		/// Get a texture or returns default texture for type. Will only check is
-		/// Texture Cache contains it and not fetch.
-		/// </summary>
-		/// <param name="textureId"></param>
-		/// <param name="type"></param>
-		/// <returns></returns>
-		public ImageTexture GetTextureOrDefault(string textureId, BitTypes type)
-		{
-			if (!string.IsNullOrWhiteSpace(textureId) 
-				&& TextureCache.TryGetValue(textureId, out ImageTexture texture))
-			{
-				return texture;
-			}
-			else
-			{
-				switch (type)
-				{
-					case BitTypes.Bit1:		return TextureCache[DEFAULT_1];
-					case BitTypes.Bit100:	return TextureCache[DEFAULT_100];
-					case BitTypes.Bit1000:	return TextureCache[DEFAULT_1000];
-					case BitTypes.Bit5000:	return TextureCache[DEFAULT_5000];
-					case BitTypes.Bit10000: return TextureCache[DEFAULT_10000];
-					default: Debug.Error("Invalid Type"); return TextureCache[DEFAULT_1];
-				}
-			}
-		}
-
-		private ImageTexture GetTextureOrQueueRequest(string textureId, int bitAmount)
-		{
-			if (string.IsNullOrWhiteSpace(textureId))
-			{
-				Debug.LogDebug("Invalid textureId");
-				return null;
-			}
-
-			if (TextureCache.TryGetValue(textureId, out ImageTexture texture))
-			{
-				Debug.LogDebug("Found textureId");
-				return texture;
-			}
-			else
-			{
-				Debug.LogDebug("Could not find textureId. Requesting...");
-
-				BitOrderQueueData order = new();
-				order.EmoteId = textureId;
-				order.BitAmount = bitAmount;
-				EmoteRequestQueue.Add(order);
-
-				return null;
-			}
-		}
-
-		private void RequestImage(string id)
-		{
-			string url = $"https://static-cdn.jtvnw.net/emoticons/v2/{id}/static/light/2.0";
-
-			HttpRequest request = new HttpRequest();
-			BitManager.AddChild(request);
-			request.Timeout = 10;
-
-			request.RequestCompleted += (long result, long responseCode, string[] headers, byte[] body) =>
-			{
-				if (responseCode == 200)
-				{
-					Image image = new Image();
-					var error = image.LoadPngFromBuffer(body);
-					if (error != Error.Ok)
-					{
-						Debug.LogErr("( EmoteRequest ) Error " + error.ToString());
-						return;
-					}
-					ImageTexture imgTexture = new ImageTexture();
-					imgTexture.SetImage(image);
-
-					Debug.LogDebug("Received emote png data! Caching");
-
-					TextureCache.TryAdd(id, imgTexture);
-				}
-				else
-				{
-					Debug.LogErr("( EmoteRequest ) Unknown response " + responseCode);
-				}
-			};
-
-			Error err = request.Request(url);
-			if (err != Error.Ok)
-			{
-				Debug.Error(err.ToString());
-			}
-		}
 
 		private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
 		{
-			if (e.ChatMessage.Bits > 0)
+			int bits = e.ChatMessage.Bits;
+#if DEBUG
+			//bits = 6005 + 2500;
+#endif
+			if (bits > 0)
 			{
 				Debug.LogInfo($"(BITS) Order Received. Total: {e.ChatMessage.Bits}");
 				Debug.LogInfo($"(BITS) Individual Cheers: {BitManager.Settings.ExperimentalBitParsing}");
@@ -630,64 +398,43 @@ namespace BitCup
 
 				if (BitManager.Settings.ExperimentalBitParsing)
 				{
-					List<string> foundCheers = new List<string>(96);
 					string[] split = e.ChatMessage.Message.Split(" ");
+
+					int totalBitsFound = 0;
 
 					foreach (string s in split)
 					{
-						if (s.ToLower().Contains("cheer"))
+						if (string.IsNullOrWhiteSpace(s) || s.Length < 4)
+							continue;
+
+						if (totalBitsFound >= bits)
+							return;
+
+						string nameStr = new string(s.Where(c => char.IsLetter(c)).ToArray());
+						string valueStr = new string(s.Where(c => char.IsDigit(c)).ToArray());
+						if (!int.TryParse(valueStr, out int amount))
+							continue;
+
+						amount = Mathf.Min(amount, bits);
+
+						Cheermote cheermote = new Cheermote();
+						cheermote.Prefix = nameStr;
+						cheermote.id = CheermotesManager.CheermoteIdFromBits(amount);
+
+						if (BitManager.CheermotesManager.Exists(cheermote))
 						{
-							foundCheers.Add(s);
+							Debug.LogDebug($"Cheermote found! {nameStr}, {amount}");
+
+							totalBitsFound += amount;
+
+							BitManager.CheermotesManager.ProcessOrderQueueForTexturesOrDefault(cheermote, amount);
 						}
 					}
 
-					// Safety
-					if (foundCheers.Count == 0)
+					if (totalBitsFound < bits)
 					{
-						BitManager.CreateOrderWithChecks(e.ChatMessage.Bits);
-						return;
-					}
-
-					int totalBitCheered = 0;
-					int cheerIndex = 0;
-					foreach (Emote emote in e.ChatMessage.EmoteSet.Emotes)
-					{
-						if (emote.Name.ToLower().Contains("cheer"))
-						{
-							// Safety
-							if (totalBitCheered > e.ChatMessage.Bits)
-							{
-								BitManager.CreateOrderWithChecks(e.ChatMessage.Bits);
-								return;
-							}
-
-							string cheerFromMsg = foundCheers[cheerIndex];
-							++cheerIndex;
-
-							// There is no static position in string to split.
-							string valueStr = new string(cheerFromMsg.Where(c => char.IsDigit(c)).ToArray());
-							if (!int.TryParse(valueStr, out int amount))
-								continue;
-
-							amount = Mathf.Min(amount, e.ChatMessage.Bits);
-
-							Debug.LogInfo($"(BITS) Name: {emote.Name}, MsgString: {cheerFromMsg}. Amount: {amount}");
-
-							totalBitCheered += amount;
-
-							// If texture is cached just create order,
-							// otherwise we queue up the order and wait
-							// for request to finish or timeout.
-							ImageTexture texture = GetTextureOrQueueRequest(emote.Id, amount);
-							if (texture != null)
-								BitManager.CreateOrderWithCustomTexture(amount, emote.Id, texture);
-						}
-					}
-
-					// Safety
-					if (totalBitCheered < e.ChatMessage.Bits)
-					{
-						BitManager.CreateOrderWithChecks(e.ChatMessage.Bits - totalBitCheered);
+						int bitDifference = bits - totalBitsFound;
+						//BitManager.CreateOrderWithChecks(bitDifference);
 					}
 				}
 				else
@@ -718,41 +465,6 @@ namespace BitCup
 				}
 			}
 #if DEBUG
-			else if (e.ChatMessage.Message.StartsWith("!bbd"))
-			{
-				List<string> foundCheers = new List<string>(96);
-				string[] split = e.ChatMessage.Message.Split(" ");
-
-				foreach (string s in split)
-				{
-					if (s.ToLower().Contains("cheer"))
-					{
-						foundCheers.Add(s);
-					}
-				}
-
-				int cheerIndex = 0;
-				foreach (Emote emote in e.ChatMessage.EmoteSet.Emotes)
-				{
-					string cheerFromMsg = foundCheers[cheerIndex];
-					++cheerIndex;
-
-					// There is no static position in string to split.
-					string valueStr = new string(cheerFromMsg.Where(c => char.IsDigit(c)).ToArray());
-					if (!int.TryParse(valueStr, out int amount))
-						continue;
-
-					Debug.LogInfo($"(BITS) Name: {emote.Name}, MsgString: {cheerFromMsg}. Amount: {amount}");
-
-					// If texture is cached just create order,
-					// otherwise we queue up the order and wait
-					// for request to finish or timeout.
-					ImageTexture texture = GetTextureOrQueueRequest(emote.Id, amount);
-					if (texture != null)
-						BitManager.CreateOrderWithCustomTexture(amount, emote.Id, texture);
-				}
-			}
-
 			Debug.LogInfo(e.ChatMessage.RawIrcMessage);
 			Debug.LogInfo(" ");
 			foreach (var emote in e.ChatMessage.EmoteSet.Emotes)

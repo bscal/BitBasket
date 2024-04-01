@@ -89,6 +89,23 @@ namespace BitCup
 		{
 			{ // channel.hype_train.progress
 				Dictionary body = new Dictionary();
+				body.Add("type", "channel.hype_train.begin");
+				body.Add("version", "1");
+
+				Dictionary condition = new Dictionary();
+				condition.Add("broadcaster_user_id", BitManager.User.BroadcasterId);
+				body.Add("condition", condition);
+
+				Dictionary transport = new Dictionary();
+				transport.Add("method", "websocket");
+				transport.Add("session_id", SessionId);
+				body.Add("transport", transport);
+
+				RequestEventSub(body);
+			}
+
+			{ // channel.hype_train.progress
+				Dictionary body = new Dictionary();
 				body.Add("type", "channel.hype_train.progress");
 				body.Add("version", "1");
 
@@ -131,13 +148,15 @@ namespace BitCup
 			req.Timeout = 30;
 			req.RequestCompleted += (result, responseCode, headers, body) =>
 			{
+				Debug.LogInfo($"(EVENT_SUB) {data["type"].AsString()} Event registered with code {responseCode}. {result}");
+
 				switch (responseCode)
 				{
 					case 202: WereEventsCreated = true; break;
 					case 400: Debug.LogErr("(EVENT_SUB) 400 Bad Request"); break;
 					case 401:
 						{
-							Debug.LogErr("(EVENT_SUB) 401 Unathurized");
+							Debug.LogErr("(EVENT_SUB) 401 Unathuorized");
 							BitManager.InvalidateTwitchState();
 						}
 						break;
@@ -181,6 +200,15 @@ namespace BitCup
 
 			switch (subscription["type"].AsString())
 			{
+				case "channel.hype_train.start":
+					{
+						if (BitManager.Settings.EnableHypeTrainRain)
+						{
+							BitManager.CreateRainOrderProgress();
+							BitManager.CreateRainOrderProgress();
+							BitManager.CreateRainOrderProgress();
+						}
+					} break;
 				case "channel.hype_train.progress":
 					{
 						Debug.LogDebug("(EVENT) channel.hype_train.progress");

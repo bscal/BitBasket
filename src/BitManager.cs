@@ -96,6 +96,7 @@ public partial class BitManager : Node2D
 	public TwitchManager TwitchManager;
 	public TwitchAPI TwitchAPI;
 	public EventSub EventSub;
+	public CheermotesManager CheermotesManager;
 	public State State;
 	public User User;
 	public Settings Settings;
@@ -126,13 +127,17 @@ public partial class BitManager : Node2D
 
 		Settings.Reload();
 
-		TwitchManager = new TwitchManager(this);
-		TwitchManager.LoadImages();
+		TwitchManager = new TwitchManager(this);	
 
 		EventSub = new EventSub(this);
 
 		TwitchAPI = new TwitchAPI(this);
 		TwitchAPI.ValidateOAuth();
+
+		CheermotesManager = new CheermotesManager(this);
+		CheermotesManager.LoadImages();
+
+		TwitchAPI.RequestCheermotes();
 
 		Node2D spawnNode = GetNode<Node2D>("./SpawnPosition");
 		if (spawnNode == null)
@@ -234,7 +239,7 @@ public partial class BitManager : Node2D
 				} break;
 			case (State.Running):
 				{
-					TwitchManager.ProcessQueues((float)delta);
+					CheermotesManager.UpdateQueue((float)delta);
 					TwitchAPI.UpdateEventServer((float)delta);
 					EventSub.UpdateEvents((float)delta);
 
@@ -263,7 +268,7 @@ public partial class BitManager : Node2D
 	{
 		if (what == NotificationWMCloseRequest || what == NotificationCrash)
 		{
-			TwitchManager.SaveImages();
+			CheermotesManager.SaveImages();
 
 			if (TwitchManager.Client != null && TwitchManager.Client.IsConnected)
 			{
@@ -303,31 +308,34 @@ public partial class BitManager : Node2D
 		BitPool[bitId].Position = SpawnPosition;
 	}
 
-	public void CreateOrderWithCustomTexture(int amount, string textureId, ImageTexture texture)
+	public BitOrder CreateBitOrderSplitBits(int amount)
 	{
-		amount = Mathf.Clamp(amount, 1, short.MaxValue);
+		BitOrder res = new();
 
-		BitOrder bitOrder = CreateBitOrder(amount);
+		res.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / 10000);
+		amount %= 10000;
 
-		// Loop backwards to find largest bit
-		for (int i = (int)BitTypes.MaxBitTypes - 1; i >= 0; --i)
-		{
-			if (bitOrder.BitAmounts[i] > 0)
-			{
-				bitOrder.Texture[i] = texture;
-				bitOrder.TextureId[i] = textureId;
-				break;
-			}
-		}
+		res.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / 5000);
+		amount %= 5000;
 
-		BitOrders.Add(bitOrder);
+		res.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / 1000);
+		amount %= 1000;
+
+		res.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / 100);
+		amount %= 100;
+
+		res.BitAmounts[(int)BitTypes.Bit1] = (short)(amount);
+
+		return res;
 	}
 
 	public void CreateOrderWithChecks(int amount)
 	{
 		amount = Mathf.Clamp(amount, 1, short.MaxValue);
 
-		BitOrder bitOrder = CreateBitOrder(amount);
+		BitOrder bitOrder = CreateBitOrderSplitBits(amount);
+
+		BitOrderDefaultTextures(bitOrder);
 
 		BitOrders.Add(bitOrder);
 	}
@@ -465,42 +473,19 @@ public partial class BitManager : Node2D
 		return BitStatesSparse[idx];
 	}
 
-	private BitOrder CreateBitOrder(int amount)
-	{
-		BitOrder res = new();
-
-		res.BitAmounts[(int)BitTypes.Bit10000] = (short)(amount / 10000);
-		amount %= 10000;
-
-		res.BitAmounts[(int)BitTypes.Bit5000] = (short)(amount / 5000);
-		amount %= 5000;
-
-		res.BitAmounts[(int)BitTypes.Bit1000] = (short)(amount / 1000);
-		amount %= 1000;
-
-		res.BitAmounts[(int)BitTypes.Bit100] = (short)(amount / 100);
-		amount %= 100;
-
-		res.BitAmounts[(int)BitTypes.Bit1] = (short)(amount);
-
-		BitOrderDefaultTextures(res);
-
-		return res;
-	}
-
 	private void BitOrderDefaultTextures(BitOrder order)
 	{
-		order.Texture[(int)BitTypes.Bit10000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_10000];
-		order.Texture[(int)BitTypes.Bit5000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_5000];
-		order.Texture[(int)BitTypes.Bit1000] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1000];
-		order.Texture[(int)BitTypes.Bit100] = TwitchManager.TextureCache[TwitchManager.DEFAULT_100];
-		order.Texture[(int)BitTypes.Bit1] = TwitchManager.TextureCache[TwitchManager.DEFAULT_1];
+		order.Texture[(int)BitTypes.Bit10000] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_10000];
+		order.Texture[(int)BitTypes.Bit5000] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_5000];
+		order.Texture[(int)BitTypes.Bit1000] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_1000];
+		order.Texture[(int)BitTypes.Bit100] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_100];
+		order.Texture[(int)BitTypes.Bit1] = CheermotesManager.PrefixToImageCache[CheermotesManager.DEFAULT_1];
 
-		order.TextureId[(int)BitTypes.Bit10000] = TwitchManager.DEFAULT_10000;
-		order.TextureId[(int)BitTypes.Bit5000] = TwitchManager.DEFAULT_5000;
-		order.TextureId[(int)BitTypes.Bit1000] = TwitchManager.DEFAULT_1000;
-		order.TextureId[(int)BitTypes.Bit100] = TwitchManager.DEFAULT_100;
-		order.TextureId[(int)BitTypes.Bit1] = TwitchManager.DEFAULT_1;
+		order.TextureId[(int)BitTypes.Bit10000] = CheermotesManager.DEFAULT_10000;
+		order.TextureId[(int)BitTypes.Bit5000] = CheermotesManager.DEFAULT_5000;
+		order.TextureId[(int)BitTypes.Bit1000] = CheermotesManager.DEFAULT_1000;
+		order.TextureId[(int)BitTypes.Bit100] = CheermotesManager.DEFAULT_100;
+		order.TextureId[(int)BitTypes.Bit1] = CheermotesManager.DEFAULT_1;
 	}
 
 
@@ -825,7 +810,7 @@ public partial class BitManager : Node2D
 				Vector2 pos = new Vector2((float)nodeData[KEY_POS_X], (float)nodeData[KEY_POS_Y]);
 				short bitPower = (short)nodeData.GetValueOrDefault(KEY_BIT_POWER, 1);
 
-				ImageTexture texture = TwitchManager.GetTextureOrDefault(textureId, type);
+				ImageTexture texture = CheermotesManager.GetTextureOrDefault(textureId, type);
 
 				int denseIdx = SpawnNode(type, pos, bitPower, textureId, texture);
 				BitStatesDense[denseIdx].HasExploded = true;
