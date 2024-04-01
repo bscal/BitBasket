@@ -345,6 +345,8 @@ namespace BitCup
 						BitManager.CreateOrderWithChecks(amount);
 
 						Debug.LogDebug($"Cheermote not found");
+
+						return;
 					}
 				}
 			}
