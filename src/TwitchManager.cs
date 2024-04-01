@@ -8,7 +8,7 @@ using TwitchLib.Communication.Clients;
 using Godot;
 using TwitchLib.Communication.Events;
 using TwitchLib.Client.Enums;
-using System.Collections.Generic;
+using TwitchLib.Api.Helix.Models.Charity.GetCharityCampaign;
 
 namespace BitCup
 {
@@ -357,7 +357,14 @@ namespace BitCup
 			if (BitManager.Settings.SubBitsAsCheer)
 				BitManager.CreateOrderWithChecks(convertedToBits);
 			else
-				BitManager.CreateOrderWithSingleBits(convertedToBits);
+			{
+				convertedToBits = Mathf.Clamp(convertedToBits, 1, short.MaxValue);
+
+				BitOrder bitOrder = new();
+				bitOrder.BitAmounts[(int)BitTypes.Bit1] = (short)convertedToBits;
+				BitManager.CheermotesManager.BitOrderDefaultTextures(bitOrder);
+				BitManager.BitOrders.Add(bitOrder);
+			}
 		}
 
 		private void Client_OnConnected(object sender, OnConnectedArgs e)
@@ -389,15 +396,11 @@ namespace BitCup
 		private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
 		{
 			int bits = e.ChatMessage.Bits;
-#if DEBUG
-			//bits = 6005 + 2500;
-#endif
 			if (bits > 0)
 			{
 				Debug.LogInfo($"(BITS) Order Received. Total: {e.ChatMessage.Bits}");
 				Debug.LogInfo($"(BITS) Individual Cheers: {BitManager.Settings.ExperimentalBitParsing}");
 				Debug.LogInfo($"(BITS) CombineBits. Total: {BitManager.Settings.CombineBits}");
-
 
 				if (BitManager.Settings.ExperimentalBitParsing)
 				{
@@ -422,7 +425,7 @@ namespace BitCup
 
 						Cheermote cheermote = new Cheermote();
 						cheermote.Prefix = nameStr;
-						cheermote.id = CheermotesManager.CheermoteIdFromBits(amount);
+						cheermote.Id = CheermotesManager.CheermoteIdFromBits(amount);
 
 						if (BitManager.CheermotesManager.Exists(cheermote))
 						{
@@ -434,6 +437,7 @@ namespace BitCup
 						}
 					}
 
+					// A backup incase my parsing sucks
 					if (totalBitsFound < bits)
 					{
 						int bitDifference = bits - totalBitsFound;
@@ -445,7 +449,9 @@ namespace BitCup
 					BitManager.CreateOrderWithChecks(e.ChatMessage.Bits);
 				}
 			}
-			else if ((e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Moderator
+
+#if DEBUG
+			if ((e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Moderator
 				|| e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Broadcaster)
 				&& e.ChatMessage.Message.StartsWith("!bb "))
 			{
@@ -467,7 +473,7 @@ namespace BitCup
 					}
 				}
 			}
-#if DEBUG
+
 			Debug.LogInfo(e.ChatMessage.RawIrcMessage);
 			Debug.LogInfo(" ");
 			foreach (var emote in e.ChatMessage.EmoteSet.Emotes)
