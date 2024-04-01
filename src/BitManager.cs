@@ -137,8 +137,6 @@ public partial class BitManager : Node2D
 		CheermotesManager = new CheermotesManager(this);
 		CheermotesManager.LoadImages();
 
-		TwitchAPI.RequestCheermotes();
-
 		Node2D spawnNode = GetNode<Node2D>("./SpawnPosition");
 		if (spawnNode == null)
 		{
@@ -208,6 +206,7 @@ public partial class BitManager : Node2D
 		}
 
 		TwitchAPI.RequestGetRewards();
+		TwitchAPI.RequestCheermotes();
 
 #if DEBUG
 		// Tests
