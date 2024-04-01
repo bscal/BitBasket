@@ -533,6 +533,8 @@ namespace BitCup
 						BitManager.CheermotesManager.Add(cheermote, url);
 					}
 				}
+
+				BitManager.CheermotesManager.DebugFlag = true;
 			}
 		}
 	}

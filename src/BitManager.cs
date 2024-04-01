@@ -1,6 +1,7 @@
 using BitCup;
 using Godot;
 using System.Collections.Generic;
+using System.Threading;
 
 public enum State
 {
@@ -238,6 +239,16 @@ public partial class BitManager : Node2D
 				} break;
 			case (State.Running):
 				{
+#if DEBUG
+					if (CheermotesManager.DebugFlag)
+					{
+						CheermotesManager.DebugFlag = false;
+						string testIRC = "@badge-info=;badges=staff/1,bits/1000;bits=1511;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1000 kappa400 cheer111";
+						TwitchManager.Client.OnReadLineTest(testIRC);
+					}
+
+#endif
+
 					CheermotesManager.UpdateQueue((float)delta);
 					TwitchAPI.UpdateEventServer((float)delta);
 					EventSub.UpdateEvents((float)delta);

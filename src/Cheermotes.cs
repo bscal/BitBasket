@@ -47,10 +47,13 @@ namespace BitCup
 		public Dictionary<Cheermote, string> CheermoteToUrl;
 		public Dictionary<string, ImageTexture> PrefixToImageCache;
 
+		public bool DebugFlag;
+
 		private ConcurrentBag<CheermoteRequestData> CheermoteQueue;
 		private ConcurrentQueue<RequestImgData> RequestImageQueue;
 
 		private BitManager BitManager;
+
 
 		public const string DEFAULT_1 = "cheer1";
 		public const string DEFAULT_100 = "cheer100";
