@@ -8,7 +8,6 @@ using TwitchLib.Communication.Clients;
 using Godot;
 using TwitchLib.Communication.Events;
 using TwitchLib.Client.Enums;
-using TwitchLib.Api.Helix.Models.Charity.GetCharityCampaign;
 
 namespace BitCup
 {

@@ -124,7 +124,9 @@ namespace BitCup
 			{
 				data.Lifetime += dt;
 
-				if (data.Lifetime > 30)
+				// NOTE: RequestImage has 20sec timeout. This is also 20sec,
+				// but doesn't start till it is the front of the queue.
+				if (data.Lifetime > 20)
 				{
 					// Hard coded timeout, uses default bits
 					BitOrderDefaultTextures(data.Order);
@@ -133,6 +135,7 @@ namespace BitCup
 					return;
 				}
 
+				// Wait till all valid textures are loaded
 				for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
 				{
 					if (data.Order.TextureId[i] == null)
@@ -380,6 +383,7 @@ namespace BitCup
 					cheermotePerBit.Prefix = cheermote.Prefix;
 					cheermotePerBit.Id = CheermoteIdFromBits(i);
 					Debug.LogDebug($"Proccessing sub-bit {cheermotePerBit.Prefix}, for {cheermotePerBit.Id} {bits}");
+
 					if (CheermoteToUrl.TryGetValue(cheermotePerBit, out CheermoteInfo info))
 					{
 						data.Order.TextureId[i] = cheermotePerBit.ToString();
@@ -397,11 +401,8 @@ namespace BitCup
 					}
 					else
 					{
-						BitManager.CreateOrderWithChecks(amount);
-
-						Debug.LogDebug($"Cheermote not found");
-
-						return;
+						data.Order.TextureId[i] = CheermoteDefaultTextureFromId(cheermotePerBit.Id);
+						Debug.LogDebug($"Cheermote url not found");
 					}
 				}
 			}

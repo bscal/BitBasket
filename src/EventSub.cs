@@ -87,7 +87,7 @@ namespace BitCup
 
 		private void CreateEvents()
 		{
-			{ // channel.hype_train.progress
+			{ // channel.hype_train.begin
 				Dictionary body = new Dictionary();
 				body.Add("type", "channel.hype_train.begin");
 				body.Add("version", "1");
@@ -105,6 +105,7 @@ namespace BitCup
 			}
 
 			{ // channel.hype_train.progress
+				// NOTE: This event doesn't work at all?
 				Dictionary body = new Dictionary();
 				body.Add("type", "channel.hype_train.progress");
 				body.Add("version", "1");

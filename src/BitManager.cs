@@ -210,9 +210,9 @@ public partial class BitManager : Node2D
 		Debug.LogInfo("TwitchClient = " + TwitchManager.Client.IsConnected);
 		Debug.LogInfo(" ");
 
-		if (string.IsNullOrEmpty(User.Username)
-			|| string.IsNullOrEmpty(User.OAuth)
-			|| string.IsNullOrEmpty(User.BroadcasterId))
+		if (string.IsNullOrWhiteSpace(User.Username)
+			|| string.IsNullOrWhiteSpace(User.OAuth)
+			|| string.IsNullOrWhiteSpace(User.BroadcasterId))
 		{
 			Debug.Error("(ERROR) ClientFullyReady User");
 			State = State.PreStart;
@@ -459,35 +459,30 @@ public partial class BitManager : Node2D
 				{
 					BitPool[idx].Mass = Settings.Mass1;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./1BitCollision").Disabled = false;
-					//SpriteCache[idx].Texture = (Texture2D)Bit1Texture;
 				}
 				break;
 			case BitTypes.Bit100:
 				{
 					BitPool[idx].Mass = Settings.Mass100;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./100BitCollision").Disabled = false;
-					//SpriteCache[idx].Texture = (Texture2D)Bit100Texture;
 				}
 				break;
 			case BitTypes.Bit1000:
 				{
 					BitPool[idx].Mass = Settings.Mass1000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./1000BitCollision").Disabled = false;
-					//SpriteCache[idx].Texture = (Texture2D)Bit1000Texture;
 				}
 				break;
 			case BitTypes.Bit5000:
 				{
 					BitPool[idx].Mass = Settings.Mass5000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./5000BitCollision").Disabled = false;
-					//SpriteCache[idx].Texture = (Texture2D)Bit5000Texture;
 				}
 				break;
 			case BitTypes.Bit10000:
 				{
 					BitPool[idx].Mass = Settings.Mass10000;
 					BitPool[idx].GetNode<CollisionPolygon2D>("./10000BitCollision").Disabled = false;
-					//SpriteCache[idx].Texture = (Texture2D)Bit10000Texture;
 				}
 				break;
 			default:
@@ -500,7 +495,6 @@ public partial class BitManager : Node2D
 		BitStatesSparse[idx] = BitStatesDenseCount;
 		BitStatesDense[BitStatesDenseCount] = new BitState(idx, bitPower, type, textureId);
 		++BitStatesDenseCount;
-
 		return BitStatesSparse[idx];
 	}
 
