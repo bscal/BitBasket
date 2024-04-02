@@ -29,19 +29,19 @@ namespace BitCup
 		}
 	}
 
-	public struct CheermoteRequestData
+	public class CheermoteRequestData
 	{
 		public BitOrder Order;
 		public float Lifetime;
 	}
 
-	public struct RequestImgData
+	public class RequestImgData
 	{
 		public Cheermote Cheermote;
 		public CheermoteInfo CheermoteInfo;
 	}
 
-	public struct CheermoteInfo
+	public class CheermoteInfo
 	{
 		public string Url;
 		public bool IsCustomEmote;

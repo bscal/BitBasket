@@ -205,9 +205,7 @@ namespace BitCup
 					{
 						if (BitManager.Settings.EnableHypeTrainRain)
 						{
-							BitManager.CreateRainOrderProgress();
-							BitManager.CreateRainOrderProgress();
-							BitManager.CreateRainOrderProgress();
+							BitManager.CreateRainOrderProgress(200);
 						}
 					} break;
 				case "channel.hype_train.progress":
@@ -216,7 +214,7 @@ namespace BitCup
 						if (BitManager.Settings.EnableHypeTrainRain)
 						{
 							//int level = e["level"].AsInt32();
-							BitManager.CreateRainOrderProgress();
+							BitManager.CreateRainOrderProgress(50);
 						}
 					} break;
 				case "channel.hype_train.end":

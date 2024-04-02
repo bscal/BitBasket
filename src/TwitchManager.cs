@@ -448,10 +448,8 @@ namespace BitCup
 					BitManager.CreateOrderWithChecks(e.ChatMessage.Bits);
 				}
 			}
-
-#if DEBUG
-			if ((e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Moderator
-				|| e.ChatMessage.UserType == TwitchLib.Client.Enums.UserType.Broadcaster)
+			else if ((e.ChatMessage.UserType == UserType.Moderator
+				|| e.ChatMessage.UserType == UserType.Broadcaster)
 				&& e.ChatMessage.Message.StartsWith("!bb "))
 			{
 				Debug.LogInfo("Command Recieved: " + e.ChatMessage.Message);
@@ -471,8 +469,13 @@ namespace BitCup
 						BitManager.CreateRainOrder(amount);
 					}
 				}
+				else if (split[1] == "debugmsg")
+				{
+					BitManager.TestTwitchDebugMessages();
+				}
 			}
 
+#if DEBUG
 			Debug.LogInfo(e.ChatMessage.RawIrcMessage);
 			Debug.LogInfo(" ");
 			foreach (var emote in e.ChatMessage.EmoteSet.Emotes)

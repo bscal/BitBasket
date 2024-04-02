@@ -1,6 +1,8 @@
 using BitCup;
 using Godot;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public enum State
 {
@@ -30,6 +32,7 @@ public enum OrderType
 public class BitOrder
 {
 	public OrderType Type = OrderType.Bits;
+	public bool IsAccurateRain;
 	public short[] BitAmounts = new short[(int)BitTypes.MaxBitTypes];
 	public ImageTexture[] Texture = new ImageTexture[(int)BitTypes.MaxBitTypes];
 	public string[] TextureId = new string[(int)BitTypes.MaxBitTypes];
@@ -255,17 +258,6 @@ public partial class BitManager : Node2D
 				break;
 			case (State.Running):
 				{
-#if DEBUG
-					if (CheermotesManager.DebugFlag)
-					{
-						CheermotesManager.DebugFlag = false;
-						//string testIRC = "@badge-info=;badges=staff/1,bits/1000;bits=2521;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1000 kappa400 crendorcheer1010 cheer111";
-						//TwitchManager.Client.OnReadLineTest(testIRC);
-						string testIRC2 = "@badge-info=;badges=staff/1,bits/1000;bits=115;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer100 crendorCheer10";
-						TwitchManager.Client.OnReadLineTest(testIRC2);
-					}
-#endif
-
 					CheermotesManager.UpdateQueue((float)delta);
 					TwitchAPI.UpdateEventServer((float)delta);
 					EventSub.UpdateEvents((float)delta);
@@ -367,13 +359,13 @@ public partial class BitManager : Node2D
 		BitOrders.Add(bitOrder);
 	}
 
-	public void CreateRainOrderProgress()
+	public void CreateRainOrderProgress(short amount)
 	{
-		BitOrder order = new BitOrder();
-		order.Type = OrderType.Rain;
-		order.BitAmounts[(int)BitTypes.Bit1] = (short)RNG.RandiRange(25, 50);
-		CheermotesManager.BitOrderDefaultTextures(order);
-		BitOrders.Add(order);
+		BitOrder fillOrder = new();
+		fillOrder.Type = OrderType.Rain;
+		fillOrder.BitAmounts[(int)BitTypes.Bit1] = amount;
+		CheermotesManager.BitOrderDefaultTextures(fillOrder);
+		BitOrders.Add(fillOrder);
 	}
 
 	public void CreateRainOrder(int level)
@@ -384,12 +376,12 @@ public partial class BitManager : Node2D
 		order.Type = OrderType.Rain;
 		CheermotesManager.BitOrderDefaultTextures(order);
 
-		order.BitAmounts[(int)BitTypes.Bit1] = (short)RNG.RandiRange(100, 200);
-		order.BitAmounts[(int)BitTypes.Bit100] = (short)(RNG.RandiRange(20 * level, 30 * level) + 50);
+		order.BitAmounts[(int)BitTypes.Bit1] = (short)RNG.RandiRange(100, 150 + (25 * level));
+		order.BitAmounts[(int)BitTypes.Bit100] = (short)RNG.RandiRange(100, 150 + (25 * level));
 		if (level >= 3)
-			order.BitAmounts[(int)BitTypes.Bit1000] = (short)RNG.RandiRange(25 * level, 30 * level);
+			order.BitAmounts[(int)BitTypes.Bit1000] = (short)RNG.RandiRange(100, 100 + (25 * level));
 		if (level >= 4)
-			order.BitAmounts[(int)BitTypes.Bit5000] = (short)RNG.RandiRange(20 * level, 30 * level);
+			order.BitAmounts[(int)BitTypes.Bit5000] = (short)RNG.RandiRange(100, 100 + (25 * level));
 		if (level >= 5)
 			order.BitAmounts[(int)BitTypes.Bit10000] = 10;
 
@@ -399,10 +391,20 @@ public partial class BitManager : Node2D
 		{
 			BitOrder fillOrder = new();
 			fillOrder.Type = OrderType.Rain;
-			fillOrder.BitAmounts[(int)BitTypes.Bit100] = 150;
+			fillOrder.IsAccurateRain = true;
+			fillOrder.BitAmounts[(int)BitTypes.Bit1] = 100;
+			fillOrder.BitAmounts[(int)BitTypes.Bit100] = 100;
 			CheermotesManager.BitOrderDefaultTextures(fillOrder);
 			BitOrders.Add(fillOrder);
 		}
+	}
+
+	public void TestTwitchDebugMessages()
+	{
+		string testIRC = "@badge-info=;badges=staff/1,bits/1000;bits=2521;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1000 kappa400 crendorcheer1010 cheer111";
+		TwitchManager.Client.OnReadLineTest(testIRC);
+		string testIRC2 = "@badge-info=;badges=staff/1,bits/1000;bits=115;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer100 crendorCheer10";
+		TwitchManager.Client.OnReadLineTest(testIRC2);
 	}
 
 	public int SpawnNode(BitTypes type, Vector2 spawnPos, short bitPower, string textureId, ImageTexture texture)
@@ -431,7 +433,7 @@ public partial class BitManager : Node2D
 		if (BitOrders.Count > 0)
 		{
 			float rotation;
-			if (BitOrders[0].Type == OrderType.Rain)
+			if (BitOrders[0].Type == OrderType.Rain && !BitOrders[0].IsAccurateRain)
 				rotation = (GD.Randf() * 2.0f - 1.0f) * 32.0f;
 			else
 				rotation = (GD.Randf() * 2.0f - 1.0f) * 10.0f;
@@ -555,16 +557,23 @@ public partial class BitManager : Node2D
 				break;
 			case OrderType.Rain:
 				{
-					for (int i = 0; i < (int)BitTypes.MaxBitTypes; ++i)
+					BitTypes[] types = new BitTypes[] 
+					{ 
+						BitTypes.Bit1, BitTypes.Bit100, BitTypes.Bit1000, BitTypes.Bit5000, BitTypes.Bit10000
+					};
+					BitTypes[] shuffled = types.OrderBy(type => RNG.Randi()).ToArray();
+
+					for (int i = 0; i < shuffled.Length; ++i)
 					{
-						BitRainRandomIndex = (BitRainRandomIndex + 1) % (int)BitTypes.MaxBitTypes;
-						if (BitRainRandomIndex == (int)BitTypes.Bit1000 && RNG.Randf() > .25f)
+						if (shuffled[i] == BitTypes.Bit10000
+							&& RNG.Randf() > .1f)
 							continue;
 
-						if (order.BitAmounts[BitRainRandomIndex] > 0)
+						int type = (int)shuffled[i];
+						if (order.BitAmounts[type] > 0)
 						{
-							--order.BitAmounts[BitRainRandomIndex];
-							SpawnNode((BitTypes)BitRainRandomIndex, SpawnPosition, 1, order.TextureId[BitRainRandomIndex], order.Texture[BitRainRandomIndex]);
+							--order.BitAmounts[type];
+							SpawnNode(shuffled[i], SpawnPosition, 1, order.TextureId[type], order.Texture[type]);
 							break;
 						}
 					}
