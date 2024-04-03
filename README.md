@@ -2,6 +2,9 @@
 ## BitBasket ##
 Program that simulates bits falling into a cup from your Twitch chat.
 
+Uses a function from System.Drawing.Common that is windows only. If you are not using custom cheermotes
+then it doesn't get called and you should probably be ok but I haven't tested.
+
 ### Running ###
 1. Download latest version from releases.
 2. Insert your twitch username in top left and click
@@ -29,6 +32,6 @@ Broadcasters and Moderators have access to `!bb test <amount>` and `!bb rain <le
 Here are the dependencies:
 * Godot Engine version 4.2.1.stable.mono
 * TwitchLib 3.5.3 - I guess DotNet or Nuget will install this for you
-
+* System.Drawing.Common 8.0.3
 
 <img width=300 height=300 src='https://github.com/bscal/BitBasket/assets/4869976/6a16ab33-c351-42db-a55d-2384adec6696'></img>
