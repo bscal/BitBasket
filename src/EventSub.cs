@@ -87,25 +87,7 @@ namespace BitCup
 
 		private void CreateEvents()
 		{
-			{ // channel.hype_train.begin
-				Dictionary body = new Dictionary();
-				body.Add("type", "channel.hype_train.begin");
-				body.Add("version", "1");
-
-				Dictionary condition = new Dictionary();
-				condition.Add("broadcaster_user_id", BitManager.User.BroadcasterId);
-				body.Add("condition", condition);
-
-				Dictionary transport = new Dictionary();
-				transport.Add("method", "websocket");
-				transport.Add("session_id", SessionId);
-				body.Add("transport", transport);
-
-				RequestEventSub(body);
-			}
-
 			{ // channel.hype_train.progress
-				// NOTE: This event doesn't work at all?
 				Dictionary body = new Dictionary();
 				body.Add("type", "channel.hype_train.progress");
 				body.Add("version", "1");
@@ -197,17 +179,8 @@ namespace BitCup
 			Dictionary subscription = payload["subscription"].AsGodotDictionary();
 			Dictionary e = payload["event"].AsGodotDictionary();
 
-			Debug.LogInfo($"(EVENT_SUB) Event. {subscription["type"].AsString()}, {DateTime.Parse((string)e["ended_at"])}");
-
 			switch (subscription["type"].AsString())
 			{
-				case "channel.hype_train.start":
-					{
-						if (BitManager.Settings.EnableHypeTrainRain)
-						{
-							BitManager.CreateRainOrderProgress(200);
-						}
-					} break;
 				case "channel.hype_train.progress":
 					{
 						Debug.LogDebug("(EVENT) channel.hype_train.progress");
@@ -339,41 +312,42 @@ namespace BitCup
 				    },
 				    ""payload"":
 					{
-						""subscription"": {
-							""id"": ""f1c2a387-161a-49f9-a165-0f21d7a4e1c4"",
-							""type"": ""channel.hype_train.progress"",
-							""version"": ""1"",
-							""status"": ""enabled"",
-							""cost"": 0,
-							""condition"": {
-								""broadcaster_user_id"": ""1337""
+						    ""subscription"": {
+								""id"": ""f1c2a387-161a-49f9-a165-0f21d7a4e1c4"",
+								""type"": ""channel.hype_train.progress"",
+								""version"": ""1"",
+								""status"": ""enabled"",
+								""cost"": 0,
+								""condition"": {
+									""broadcaster_user_id"": ""1337""
+								},
+								 ""transport"": {
+									""method"": ""webhook"",
+									""callback"": ""https://example.com/webhooks/callback""
+								},
+								""created_at"": ""2019-11-16T10:11:12.634234626Z""
 							},
-							 ""transport"": {
-								""method"": ""webhook"",
-								""callback"": ""https://example.com/webhooks/callback""
-							},
-							""created_at"": ""2019-11-16T10:11:12.634234626Z""
-						},
-						""event"": {
-							""id"": ""1b0AsbInCHZW2SQFQkCzqN07Ib2"",
-							""broadcaster_user_id"": ""1337"",
-							""broadcaster_user_login"": ""cool_user"",
-							""broadcaster_user_name"": ""Cool_User"",
-							""level"": 3,
-							""total"": 137,
-							""top_contributions"": [
-								{ ""user_id"": ""123"", ""user_login"": ""pogchamp"", ""user_name"": ""PogChamp"", ""type"": ""bits"", ""total"": 50 },
-								{ ""user_id"": ""456"", ""user_login"": ""kappa"", ""user_name"": ""Kappa"", ""type"": ""subscription"", ""total"": 45 }
-							],
-							""started_at"": ""2020-07-15T17:16:03.17106713Z"",
-							""ended_at"": ""2024-03-18T12:12:12.17106713Z"",
-							""cooldown_ends_at"": ""2020-07-15T18:16:11.17106713Z""
-						}
+							""event"": {
+								""id"": ""1b0AsbInCHZW2SQFQkCzqN07Ib2"",
+								""broadcaster_user_id"": ""1337"",
+								""broadcaster_user_login"": ""cool_user"",
+								""broadcaster_user_name"": ""Cool_User"",
+								""level"": 2,
+								""total"": 700,
+								""progress"": 200,
+								""goal"": 1000,
+								""top_contributions"": [
+									{ ""user_id"": ""123"", ""user_login"": ""pogchamp"", ""user_name"": ""PogChamp"", ""type"": ""bits"", ""total"": 50 },
+									{ ""user_id"": ""456"", ""user_login"": ""kappa"", ""user_name"": ""Kappa"", ""type"": ""subscription"", ""total"": 45 }
+								],
+								""last_contribution"": { ""user_id"": ""123"", ""user_login"": ""pogchamp"", ""user_name"": ""PogChamp"", ""type"": ""bits"", ""total"": 50 },
+								""started_at"": ""2020-07-15T17:16:03.17106713Z"",
+								""expires_at"": ""2020-07-15T17:16:11.17106713Z""
 				    }
 				}
 				";
 
-			for (int i = 0; i < 2; ++i)
+			for (int i = 0; i < 3; ++i)
 			{
 				var json = new Json();
 				json.Parse(str2);
@@ -382,13 +356,6 @@ namespace BitCup
 				data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["started_at"] = ToRFC3339String(DateTime.UtcNow);
 				GD.Print(json.Data);
 				ParsePacket(data);
-
-				var json2 = new Json();
-				json2.Parse(str2);
-				var data2 = json2.Data.AsGodotDictionary();
-				data2["metadata"].AsGodotDictionary()["message_id"] = "befa7b53-d79d-478f-86b9-120f112b044e" + i;
-				data2["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["started_at"] = ToRFC3339String(DateTime.UtcNow);
-				ParsePacket(data2);
 			}
 
 			{

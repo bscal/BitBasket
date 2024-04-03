@@ -370,7 +370,7 @@ public partial class BitManager : Node2D
 
 	public void CreateRainOrder(int level)
 	{
-		level = Mathf.Clamp(level, 1, 5);
+		level = Mathf.Clamp(level, 1, 100);
 
 		BitOrder order = new BitOrder();
 		order.Type = OrderType.Rain;
@@ -383,7 +383,7 @@ public partial class BitManager : Node2D
 		if (level >= 4)
 			order.BitAmounts[(int)BitTypes.Bit5000] = (short)RNG.RandiRange(100, 100 + (25 * level));
 		if (level >= 5)
-			order.BitAmounts[(int)BitTypes.Bit10000] = 10;
+			order.BitAmounts[(int)BitTypes.Bit10000] = (short)(5 + level);
 
 		BitOrders.Add(order);
 
