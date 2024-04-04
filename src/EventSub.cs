@@ -301,7 +301,7 @@ namespace BitCup
 				}
 				";
 
-			string str2 = @"
+			string strProgress = @"
 				{
 				    ""metadata"": {
 				        ""message_id"": ""befa7b53-d79d-478f-86b9-120f112b044e"",
@@ -312,7 +312,7 @@ namespace BitCup
 				    },
 				    ""payload"":
 					{
-						    ""subscription"": {
+						 ""subscription"": {
 								""id"": ""f1c2a387-161a-49f9-a165-0f21d7a4e1c4"",
 								""type"": ""channel.hype_train.progress"",
 								""version"": ""1"",
@@ -343,14 +343,15 @@ namespace BitCup
 								""last_contribution"": { ""user_id"": ""123"", ""user_login"": ""pogchamp"", ""user_name"": ""PogChamp"", ""type"": ""bits"", ""total"": 50 },
 								""started_at"": ""2020-07-15T17:16:03.17106713Z"",
 								""expires_at"": ""2020-07-15T17:16:11.17106713Z""
+							}
 				    }
 				}
-				";
+			";
 
 			for (int i = 0; i < 3; ++i)
 			{
 				var json = new Json();
-				json.Parse(str2);
+				json.Parse(strProgress);
 				var data = json.Data.AsGodotDictionary();
 				data["metadata"].AsGodotDictionary()["message_id"] = "befa7b53-d79d-478f-86b9-120f112b044e" + i;
 				data["payload"].AsGodotDictionary()["event"].AsGodotDictionary()["started_at"] = ToRFC3339String(DateTime.UtcNow);

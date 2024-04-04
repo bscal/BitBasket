@@ -15,29 +15,29 @@ angular_damp = 0.2
 
 [node name="1BitCollision" type="CollisionPolygon2D" parent="."]
 position = Vector2(-1.13098, 1.07813)
-scale = Vector2(0.85, 0.85)
+scale = Vector2(0.9, 0.9)
 polygon = PackedVector2Array(-17.6089, 14.5184, 1.05545, -17.5893, 19.7198, 14.5184)
 
 [node name="100BitCollision" type="CollisionPolygon2D" parent="."]
 position = Vector2(-1.13098, 1.07813)
-scale = Vector2(0.85, 0.85)
+scale = Vector2(0.9, 0.9)
 polygon = PackedVector2Array(-12.9428, 6.73471, 1.05545, -20.5082, 15.987, 6.73471, 1.05545, 18.4103)
 
 [node name="1000BitCollision" type="CollisionPolygon2D" parent="."]
 position = Vector2(-1.13098, 1.07813)
-scale = Vector2(0.85, 0.85)
+scale = Vector2(0.9, 0.9)
 polygon = PackedVector2Array(-16.6757, -1.04898, 1.05545, -18.5623, 18.7866, -1.04898, 9.45442, 17.4373, -6.4103, 17.4373)
 
 [node name="5000BitCollision" type="CollisionPolygon2D" parent="."]
 position = Vector2(-1.13098, 1.07813)
-scale = Vector2(0.85, 0.85)
+scale = Vector2(0.9, 0.9)
 polygon = PackedVector2Array(-14.8093, -5.91379, 1.05545, -19.5352, 16.9202, -5.91379, 16.9202, 3.81583, 1.05545, 17.4373, -14.8093, 3.81583)
 
 [node name="10000BitCollision" type="CollisionPolygon2D" parent="."]
 position = Vector2(-1.13098, 1.07813)
-scale = Vector2(0.85, 0.85)
+scale = Vector2(0.9, 0.9)
 polygon = PackedVector2Array(-16.6757, -1.04898, -8.27672, -6.88677, -8.27674, -16.6164, 1.05545, -11.7516, 10.3876, -16.6164, 10.3876, -6.88677, 17.8534, -1.04898, 10.3876, 4.78881, 10.3876, 15.4914, 1.05545, 10.6266, -8.27672, 15.4914, -8.27672, 4.78881)
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.75, 0.75)
+scale = Vector2(0.9, 0.9)
 texture = ExtResource("1_b2hdn")

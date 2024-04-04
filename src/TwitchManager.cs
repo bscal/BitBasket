@@ -353,6 +353,9 @@ namespace BitCup
 				tier = 3;
 
 			int convertedToBits = BitManager.Settings.SubBitsAmount * months * tier;
+
+			Debug.LogInfo($"( SubBits ) Total Bits: {convertedToBits}");
+
 			if (BitManager.Settings.SubBitsAsCheer)
 				BitManager.CreateOrderWithChecks(convertedToBits);
 			else
@@ -424,7 +427,7 @@ namespace BitCup
 
 						Cheermote cheermote = new Cheermote();
 						cheermote.Prefix = nameStr;
-						cheermote.Id = CheermotesManager.CheermoteIdFromBits(amount);
+						cheermote.Id = CheermotesManager.CheermoteIdFromBitType(amount);
 
 						if (BitManager.CheermotesManager.Exists(cheermote))
 						{
@@ -471,7 +474,7 @@ namespace BitCup
 				}
 				else if (split[1] == "debugmsg")
 				{
-					BitManager.TestTwitchDebugMessages();
+					BitManager.TestIRCMessages();
 				}
 			}
 

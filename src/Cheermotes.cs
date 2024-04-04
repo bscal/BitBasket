@@ -104,12 +104,16 @@ namespace BitCup
 			var crenCheerTest1 = new Cheermote();
 			crenCheerTest1.Prefix = "crendorcheer";
 			crenCheerTest1.Id = 1;
-			CheermoteToUrl.Add(crenCheerTest1, new("https://d3aqoihi2n8ty8.cloudfront.net/partner-actions/7555574/f70a0f6f-1e64-4328-a5ae-abf3c8c56c5f/1/light/animated/1.5.gif", true));
+			Add(crenCheerTest1,
+				"https://d3aqoihi2n8ty8.cloudfront.net/partner-actions/7555574/f70a0f6f-1e64-4328-a5ae-abf3c8c56c5f/1/light/animated/1.5.gif",
+				true);
 
 			var crenCheerTest1000 = new Cheermote();
 			crenCheerTest1000.Prefix = "crendorcheer";
 			crenCheerTest1000.Id = 1000;
-			CheermoteToUrl.Add(crenCheerTest1000, new("https://d3aqoihi2n8ty8.cloudfront.net/partner-actions/7555574/f70a0f6f-1e64-4328-a5ae-abf3c8c56c5f/1000/light/animated/1.5.gif", true));
+			Add(crenCheerTest1000,
+				"https://d3aqoihi2n8ty8.cloudfront.net/partner-actions/7555574/f70a0f6f-1e64-4328-a5ae-abf3c8c56c5f/1000/light/animated/1.5.gif",
+				true);
 #endif
 		}
 
@@ -265,6 +269,7 @@ namespace BitCup
 			{
 				if (responseCode == 200)
 				{
+#if GODOT_WINDOWS
 					Image image = new Image();
 					Error loadImgError;
 
@@ -293,6 +298,9 @@ namespace BitCup
 					imgTexture.SetImage(image);
 
 					Debug.LogDebug("Received emote png data! Caching");
+#else
+					imgTexture = GetTextureOrDefault(cheermote.ToString(), BitTypeFromBits(cheermote.Id));
+#endif
 
 					if (PrefixToImageCache.TryAdd(cheermote.ToString(), imgTexture))
 					{
@@ -312,7 +320,7 @@ namespace BitCup
 			}
 		}
 
-		public static int CheermoteIdFromBits(int type)
+		public static int CheermoteIdFromBitType(int type)
 		{
 			if (type == (int)BitTypes.Bit10000)
 				return BitManager.BIT10000;
@@ -322,8 +330,22 @@ namespace BitCup
 				return BitManager.BIT1000;
 			if (type == (int)BitTypes.Bit100)
 				return BitManager.BIT100;
-			else
-				return BitManager.BIT1;
+
+			return BitManager.BIT1;
+		}
+
+		public static BitTypes BitTypeFromBits(int bitAmount)
+		{
+			if (bitAmount >= BitManager.BIT10000)
+				return BitTypes.Bit10000;
+			if (bitAmount >= BitManager.BIT5000)
+				return BitTypes.Bit5000;
+			if (bitAmount >= BitManager.BIT1000)
+				return BitTypes.Bit1000;
+			if (bitAmount >= BitManager.BIT100)
+				return BitTypes.Bit100;
+
+			return BitTypes.Bit1;
 		}
 
 		public static string CheermoteDefaultTextureFromId(int id)
@@ -356,7 +378,11 @@ namespace BitCup
 			if (!Exists(cheermote))
 			{
 				Debug.LogInfo($"( RequestCheermotes ) Added {cheermote.Prefix}, {cheermote.Id}, {url}");
-				CheermoteToUrl.Add(cheermote, new CheermoteInfo(url, isCustomEmote));
+				CheermoteInfo cheerInfo = new CheermoteInfo(url, isCustomEmote);
+				CheermoteToUrl.Add(cheermote, cheerInfo);
+
+				if (isCustomEmote)
+					RequestImage(cheermote, cheerInfo);
 			}
 			else
 			{
@@ -381,7 +407,7 @@ namespace BitCup
 				{
 					Cheermote cheermotePerBit = new();
 					cheermotePerBit.Prefix = cheermote.Prefix;
-					cheermotePerBit.Id = CheermoteIdFromBits(i);
+					cheermotePerBit.Id = CheermoteIdFromBitType(i);
 					Debug.LogDebug($"Proccessing sub-bit {cheermotePerBit.Prefix}, for {cheermotePerBit.Id} {bits}");
 
 					if (CheermoteToUrl.TryGetValue(cheermotePerBit, out CheermoteInfo info))
