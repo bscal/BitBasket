@@ -82,7 +82,7 @@ namespace BitCup
 
 				Debug.LogDebug($"( Cheermotes ) Default {name} {id} {cheeremote}");
 
-				CheermoteToUrl.Add(cheeremote, new( string.Empty, false ));
+				CheermoteToUrl.Add(cheeremote, new(string.Empty, false));
 				PrefixToImageCache.Add(cheeremote.ToString(), t);
 			}
 
@@ -269,10 +269,11 @@ namespace BitCup
 			{
 				if (responseCode == 200)
 				{
-#if GODOT_WINDOWS
 					Image image = new Image();
 					Error loadImgError;
+					ImageTexture imgTexture = new ImageTexture();
 
+#if GODOT_WINDOWS
 					if (cheermoteInfo.IsCustomEmote)
 					{
 						// TODO Currently dont care if you not on windows
@@ -294,7 +295,6 @@ namespace BitCup
 						return;
 					}
 
-					ImageTexture imgTexture = new ImageTexture();
 					imgTexture.SetImage(image);
 
 					Debug.LogDebug("Received emote png data! Caching");
@@ -304,7 +304,7 @@ namespace BitCup
 
 					if (PrefixToImageCache.TryAdd(cheermote.ToString(), imgTexture))
 					{
-						 Debug.LogDebug($"Added Cheermote {cheermote.ToString()}" );
+						Debug.LogDebug($"Added Cheermote {cheermote.ToString()}");
 					}
 				}
 				else
@@ -414,14 +414,14 @@ namespace BitCup
 					{
 						data.Order.TextureId[i] = cheermotePerBit.ToString();
 
-						if (!cheermote.Prefix.Equals("Cheer", StringComparison.CurrentCultureIgnoreCase) 
+						if (!cheermote.Prefix.Equals("Cheer", StringComparison.CurrentCultureIgnoreCase)
 							&& !PrefixToImageCache.ContainsKey(cheermotePerBit.ToString()))
 						{
 							RequestImgData requestData = new();
 							requestData.Cheermote = cheermotePerBit;
 							requestData.CheermoteInfo = info;
 							RequestImageQueue.Enqueue(requestData);
-							
+
 							Debug.LogDebug($"Enqueuing {cheermote.ToString()}");
 						}
 					}

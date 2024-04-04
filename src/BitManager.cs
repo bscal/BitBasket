@@ -880,7 +880,6 @@ public partial class BitManager : Node2D
 
 	public void TestIRCMessages()
 	{
-#if DEBUG
 		const string subTest = $"@badge-info=;badges=staff/1,broadcaster/1,turbo/1;color=#008000;" +
 			"display-name=ronni;emotes=;id=db25007f-7a18-43eb-9379-80131e44d633;login=ronni;mod=0;" +
 			"msg-id=resub;msg-param-cumulative-months=6;msg-param-streak-months=2;msg-param-should-share-streak=1;" +
@@ -895,6 +894,5 @@ public partial class BitManager : Node2D
 
 		string testIRC2 = "@badge-info=;badges=staff/1,bits/1000;bits=3020;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1500 kappa500 crendorcheer1005 crendorcheer5";
 		TwitchManager.Client.OnReadLineTest(testIRC2);
-#endif
 	}
 }

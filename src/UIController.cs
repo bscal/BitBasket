@@ -154,7 +154,9 @@ public partial class UIController : Node
 
 		LabelDebugVersion = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugVersion"));
 		Debug.Assert(LabelDebugVersion != null);
-		LabelDebugVersion.Text = string.Format("Version: {0}.{1}", BitManager.VersionMajor, BitManager.VersionMinor);
+
+		string os = OS.GetName();
+		LabelDebugVersion.Text = string.Format("Version: {0}.{1}, {2}", BitManager.VersionMajor, BitManager.VersionMinor, os);
 
 		LabelDebugFPS = GetNode<Label>(new NodePath(DEBUG_URL + "LabelDebugFPS"));
 		Debug.Assert(LabelDebugFPS != null);
