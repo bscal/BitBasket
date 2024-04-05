@@ -29,10 +29,18 @@ public enum OrderType
 	Rain,
 }
 
+[Flags]
+public enum OrderFlags
+{
+	AccurateRain = 1,
+	ProgressRain = 2,
+
+}
+
 public class BitOrder
 {
 	public OrderType Type = OrderType.Bits;
-	public bool IsAccurateRain;
+	public OrderFlags Flags;
 	public short[] BitAmounts = new short[(int)BitTypes.MaxBitTypes];
 	public ImageTexture[] Texture = new ImageTexture[(int)BitTypes.MaxBitTypes];
 	public string[] TextureId = new string[(int)BitTypes.MaxBitTypes];
@@ -363,6 +371,7 @@ public partial class BitManager : Node2D
 	{
 		BitOrder fillOrder = new();
 		fillOrder.Type = OrderType.Rain;
+		fillOrder.Flags = OrderFlags.ProgressRain;
 		fillOrder.BitAmounts[(int)BitTypes.Bit1] = amount;
 		CheermotesManager.BitOrderDefaultTextures(fillOrder);
 		BitOrders.Add(fillOrder);
@@ -391,7 +400,7 @@ public partial class BitManager : Node2D
 		{
 			BitOrder fillOrder = new();
 			fillOrder.Type = OrderType.Rain;
-			fillOrder.IsAccurateRain = true;
+			fillOrder.Flags = OrderFlags.AccurateRain;
 			fillOrder.BitAmounts[(int)BitTypes.Bit1] = 100;
 			fillOrder.BitAmounts[(int)BitTypes.Bit100] = 100;
 			CheermotesManager.BitOrderDefaultTextures(fillOrder);
@@ -425,7 +434,7 @@ public partial class BitManager : Node2D
 		if (BitOrders.Count > 0)
 		{
 			float rotation;
-			if (BitOrders[0].Type == OrderType.Rain && !BitOrders[0].IsAccurateRain)
+			if (BitOrders[0].Type == OrderType.Rain && !BitOrders[0].Flags.HasFlag(OrderFlags.AccurateRain))
 				rotation = (GD.Randf() * 2.0f - 1.0f) * 32.0f;
 			else
 				rotation = (GD.Randf() * 2.0f - 1.0f) * 10.0f;
@@ -494,6 +503,10 @@ public partial class BitManager : Node2D
 
 	private bool BitOrderProcessNext(float dt)
 	{
+		const float TIMER_START = 0f;
+		const float TIMER_START_POST_ORDER = -3f;
+		const float TIMER_START_POST_BIT_TYPE = -2f;
+
 		if (BitOrders.Count == 0)
 			return false;
 
@@ -511,7 +524,7 @@ public partial class BitManager : Node2D
 		if (Timer < delay)
 			return false;
 
-		Timer = 0;
+		Timer = TIMER_START;
 
 		switch (order.Type)
 		{
@@ -537,7 +550,7 @@ public partial class BitManager : Node2D
 
 							// Longer inbetween different bit amonunts
 							if (order.BitAmounts[i] <= 0)
-								Timer = -2f;
+								Timer = TIMER_START_POST_BIT_TYPE;
 
 							SpawnNode((BitTypes)i, SpawnPosition, bitPower, order.TextureId[i], order.Texture[i]);
 
@@ -582,10 +595,28 @@ public partial class BitManager : Node2D
 
 		if (isFinished)
 		{
-			if (BitOrders.Count > 1 && (lastBitUsed == (int)BitTypes.Bit1 && DoesOrderContainOnly1Bits(BitOrders[1])))
-				Timer = 0f;
+			if (BitOrders.Count > 1)
+			{
+				if (lastBitUsed == (int)BitTypes.Bit1
+					&& DoesOrderContainOnly1Bits(BitOrders[1]))
+				{
+					Timer = TIMER_START;
+				}
+				else if (BitOrders[0].Type == OrderType.Rain && BitOrders[1].Type == OrderType.Rain
+					&& BitOrders[0].Flags.HasFlag(OrderFlags.ProgressRain)
+					&& BitOrders[1].Flags.HasFlag(OrderFlags.ProgressRain))
+				{
+					Timer = TIMER_START;
+				}
+				else
+				{
+					Timer = TIMER_START_POST_ORDER;
+				}
+			}
 			else
-				Timer = -3f; // Long wait inbetween orders
+			{
+				Timer = TIMER_START_POST_ORDER;
+			}
 		}
 
 		return isFinished;
@@ -892,7 +923,7 @@ public partial class BitManager : Node2D
 		string testIRC = "@badge-info=;badges=staff/1,bits/1000;bits=300;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer300";
 		TwitchManager.Client.OnReadLineTest(testIRC);
 
-		string testIRC2 = "@badge-info=;badges=staff/1,bits/1000;bits=3020;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1500 kappa500 crendorcheer1005 crendorcheer5";
+		string testIRC2 = "@badge-info=;badges=staff/1,bits/1000;bits=3020;color=;display-name=ronni;emotes=;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=0;tmi-sent-ts=1507246572675;turbo=1;user-id=12345678;user-type=staff :ronni!ronni@ronni.tmi.twitch.tv PRIVMSG #ronni :cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1 cheer1500 crendorcheer1005 kappa500 crendorcheer5";
 		TwitchManager.Client.OnReadLineTest(testIRC2);
 	}
 }

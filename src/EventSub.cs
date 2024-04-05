@@ -2,7 +2,6 @@
 using Godot;
 using System;
 using System.Xml;
-using System.Linq;
 
 namespace BitCup
 {
@@ -19,9 +18,6 @@ namespace BitCup
 
 		const float RECONNECT_TIMER_START = 10.0f;
 		const string EVENTSUB_WEBSOCKET_URL = "wss://eventsub.wss.twitch.tv/ws";
-
-		//int RecentIdIndex;
-		//string[] RecentId = new string[8];
 
 		public EventSub(BitManager bitManager)
 		{
